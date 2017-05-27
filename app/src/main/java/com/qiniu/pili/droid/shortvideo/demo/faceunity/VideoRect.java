@@ -52,8 +52,8 @@ public class VideoRect {
                     "uniform vec4 uFragColor;" +
                     "varying vec2 vTexPosition;" +
                     "void main() {" +
-                    "  gl_FragColor = texture2D(uTexture, vTexPosition);" +
-//                    "  gl_FragColor = vec4(texture2D(uTexture, vTexPosition).rgb, 255);" +
+                    //"  gl_FragColor = texture2D(uTexture, vTexPosition);" +
+                    "  gl_FragColor = vec4(texture2D(uTexture, vTexPosition).rgb, 1.0);" +
                     "}";
 
     private int vertexShader;
