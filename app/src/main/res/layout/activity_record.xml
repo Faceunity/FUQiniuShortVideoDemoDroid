@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/record_progressbar"
+        android:background="@android:color/black">
+
+        <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
+            android:id="@+id/preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <include
+            layout="@layout/faceunity_bottom_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom" />
+
+        <ImageView
+            android:id="@+id/iv_face_detect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:src="@mipmap/ic_detect_tip" />
+    </FrameLayout>
+
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_margin="15dp">
+
+        <ImageButton
+            android:id="@+id/switch_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:onClick="onClickSwitchCamera"
+            android:src="@drawable/btn_switch_camera" />
+
+        <ImageButton
+            android:id="@+id/switch_flash"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@android:color/transparent"
+            android:onClick="onClickSwitchFlash"
+            android:src="@drawable/ic_flash_selector"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar
+        android:id="@+id/record_progressbar"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_above="@+id/btns"
+        android:layout_gravity="top" />
+
+    <LinearLayout
+        android:id="@+id/btns"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/background_dark"
+        android:gravity="center"
+        android:padding="5dp">
+
+        <ImageView
+            android:id="@+id/delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/btn_delete"
+            android:clickable="true"
+            android:onClick="onClickDelete" />
+
+        <ImageView
+            android:id="@+id/record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:clickable="true"
+            android:src="@drawable/btn_record" />
+
+        <ImageView
+            android:id="@+id/concat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/btn_concat"
+            android:clickable="true"
+            android:onClick="onClickConcat" />
+    </LinearLayout>
+
+
+</RelativeLayout>
