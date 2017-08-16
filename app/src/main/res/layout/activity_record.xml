@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/black"
+                android:clipChildren="false">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/record_progressbar"
-        android:background="@android:color/black">
+        android:layout_above="@+id/brightness_panel">
 
         <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
             android:id="@+id/preview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"/>
 
-        <include
-            layout="@layout/faceunity_bottom_layout"
+        <com.faceunity.FaceunityControlView
+            android:id="@+id/faceunity_control_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom" />
+            android:layout_gravity="bottom"/>
 
         <ImageView
             android:id="@+id/iv_face_detect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:src="@mipmap/ic_detect_tip" />
+            android:src="@mipmap/ic_detect_tip"/>
     </FrameLayout>
 
 
@@ -36,31 +37,60 @@
         android:layout_centerHorizontal="true"
         android:layout_margin="15dp">
 
-        <ImageButton
-            android:id="@+id/switch_camera"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@android:color/transparent"
-            android:onClick="onClickSwitchCamera"
-            android:src="@drawable/btn_switch_camera" />
-
-        <ImageButton
-            android:id="@+id/switch_flash"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <ImageView
+            android:layout_width="25dp"
+            android:layout_height="25dp"
             android:layout_marginLeft="10dp"
-            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:onClick="onCaptureFrame"
+            android:src="@drawable/btn_capture_frame"/>
+
+        <ImageView
+            android:id="@+id/switch_camera"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginLeft="10dp"
+            android:onClick="onClickSwitchCamera"
+            android:src="@drawable/btn_switch_camera"/>
+
+        <ImageView
+            android:id="@+id/switch_flash"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginLeft="10dp"
             android:onClick="onClickSwitchFlash"
-            android:src="@drawable/ic_flash_selector"
-            android:visibility="gone" />
+            android:src="@drawable/btn_flash_selector"
+            android:visibility="gone"/>
     </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/brightness_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/record_progressbar"
+        android:gravity="center_vertical"
+        android:padding="20dp"
+        android:visibility="invisible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="亮度调整"
+            android:textColor="#fff"/>
+
+        <SeekBar
+            android:id="@+id/adjust_brightness"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
 
     <com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar
         android:id="@+id/record_progressbar"
         android:layout_width="match_parent"
         android:layout_height="8dp"
         android:layout_above="@+id/btns"
-        android:layout_gravity="top" />
+        android:layout_gravity="top"/>
 
     <LinearLayout
         android:id="@+id/btns"
@@ -77,7 +107,7 @@
             android:layout_height="wrap_content"
             android:background="@drawable/btn_delete"
             android:clickable="true"
-            android:onClick="onClickDelete" />
+            android:onClick="onClickDelete"/>
 
         <ImageView
             android:id="@+id/record"
@@ -86,7 +116,7 @@
             android:layout_marginLeft="30dp"
             android:layout_marginRight="30dp"
             android:clickable="true"
-            android:src="@drawable/btn_record" />
+            android:src="@drawable/btn_record"/>
 
         <ImageView
             android:id="@+id/concat"
@@ -94,8 +124,19 @@
             android:layout_height="wrap_content"
             android:background="@drawable/btn_concat"
             android:clickable="true"
-            android:onClick="onClickConcat" />
+            android:onClick="onClickConcat"/>
     </LinearLayout>
 
+
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipChildren="false">
+
+        <com.qiniu.pili.droid.shortvideo.demo.view.FocusIndicator
+            android:id="@+id/focus_indicator"
+            android:layout_width="100dp"
+            android:layout_height="100dp"/>
+    </FrameLayout>
 
 </RelativeLayout>

@@ -46,6 +46,18 @@ public class RecordSettings {
             "1440x1088"
     };
 
+    public static final String[] ENCODING_BITRATE_LEVEL_TIPS_ARRAY = {
+            "500Kbps",
+            "800Kbps",
+            "1000Kbps",
+            "1200Kbps",
+            "1600Kbps",
+            "2000Kbps",
+            "2500Kbps",
+            "4000Kbps",
+            "8000Kbps"
+    };
+
     public static final PLCameraSetting.CAMERA_PREVIEW_SIZE_RATIO[] PREVIEW_SIZE_RATIO_ARRAY = {
             PLCameraSetting.CAMERA_PREVIEW_SIZE_RATIO.RATIO_4_3,
             PLCameraSetting.CAMERA_PREVIEW_SIZE_RATIO.RATIO_16_9
@@ -143,5 +155,17 @@ public class RecordSettings {
              * 1440x1088
             */
             PLVideoEncodeSetting.VIDEO_ENCODING_SIZE_LEVEL.VIDEO_ENCODING_SIZE_LEVEL_1088P_2,
+    };
+
+    public static final int[] ENCODING_BITRATE_LEVEL_ARRAY = {
+            500 * 1000,
+            800 * 1000,
+            1000 * 1000,
+            1200 * 1000,
+            1600 * 1000,
+            2000 * 1000,
+            2500 * 1000,
+            4000 * 1000,
+            8000 * 1000,
     };
 }
