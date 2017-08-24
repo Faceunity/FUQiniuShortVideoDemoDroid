@@ -190,6 +190,8 @@ public class FaceunityWrapper {
         faceunity.fuItemSetParam(mFacebeautyItem, "face_shape_level", mFaceShapeLevel);
         faceunity.fuItemSetParam(mFacebeautyItem, "red_level", mFacebeautyRedLevel);
 
+        faceunity.fuItemSetParam(mEffectItem, "rotationAngle", mCurrentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT ? 90 : 270);
+
         //faceunity.fuItemSetParam(mFacebeautyItem, "use_old_blur", 1);
 
         if (mCameraNV21Byte == null || mCameraNV21Byte.length == 0) {
