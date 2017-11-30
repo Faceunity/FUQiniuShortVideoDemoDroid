@@ -1,4 +1,4 @@
-package com.faceunity;
+package com.faceunity.wrapper;
 
 import android.content.Context;
 import android.hardware.Camera;
@@ -10,9 +10,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import com.faceunity.gles.FullFrameRect;
-import com.faceunity.gles.Texture2dProgram;
-import com.faceunity.wrapper.faceunity;
+import com.faceunity.wrapper.gles.FullFrameRect;
+import com.faceunity.wrapper.gles.Texture2dProgram;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -106,7 +105,8 @@ public class FaceunityWrapper {
     }
 
     public void onSurfaceChanged(int width, int height, int previewWidth, int previewHeight) {
-        Log.e(TAG, "onSurfaceChanged = " + Thread.currentThread().getId());
+        Log.e(TAG, "onSurfaceChanged width " + width + " height " + height + " previewWidth " + previewWidth + " previewHeight " + previewHeight);
+
     }
 
     public void onSurfaceDestroyed() {
@@ -150,8 +150,7 @@ public class FaceunityWrapper {
      * @param texHeight 纹理高度
      * @return 特效处理后的纹理
      */
-    public int onDrawFrame(int texId, int texWidth, int texHeight) {
-        Log.e(TAG, "onDrawFrame = " + Thread.currentThread().getId());
+    public int onDrawFrame(int texId, int texWidth, int texHeight, float[] transformMatrix) {
         if (++currentFrameCnt == 100) {
             currentFrameCnt = 0;
             long tmp = System.nanoTime();
@@ -161,6 +160,16 @@ public class FaceunityWrapper {
             if (isBenchmarkTime)
                 Log.e(TAG, "dualInput cost time avg : " + oneHundredFrameFUTime / 100.f / MiscUtil.NANO_IN_ONE_MILLI_SECOND);
             oneHundredFrameFUTime = 0;
+        }
+
+        if (mCameraMatrix1 == null || mCameraMatrix2 == null) {
+            Log.e(TAG, "mCameraMatrix1 or mCameraMatrix1 is null.");
+            return texId;
+        }
+
+        if (mCameraNV21Byte == null || mCameraNV21Byte.length == 0) {
+            Log.e(TAG, "camera nv21 bytes null");
+            return texId;
         }
 
         createFBO(texWidth, texHeight);
@@ -190,14 +199,7 @@ public class FaceunityWrapper {
         faceunity.fuItemSetParam(mFacebeautyItem, "face_shape_level", mFaceShapeLevel);
         faceunity.fuItemSetParam(mFacebeautyItem, "red_level", mFacebeautyRedLevel);
 
-        faceunity.fuItemSetParam(mEffectItem, "rotationAngle", mCurrentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT ? 90 : 270);
-
         //faceunity.fuItemSetParam(mFacebeautyItem, "use_old_blur", 1);
-
-        if (mCameraNV21Byte == null || mCameraNV21Byte.length == 0) {
-            Log.e(TAG, "camera nv21 bytes null");
-            return texId;
-        }
 
         boolean isOESTexture = false; //camera默认的是OES的
         int flags = isOESTexture ? faceunity.FU_ADM_FLAG_EXTERNAL_OES_TEXTURE : 0;
@@ -213,7 +215,6 @@ public class FaceunityWrapper {
         }
         flags |= mCurrentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT ? 0 : faceunity.FU_ADM_FLAG_FLIP_X;
 
-        Log.e(TAG, "texId = " + texId + " flags = " + flags + " texWidth = " + texWidth + " texHeight = " + texHeight);
         long fuStartTime = System.nanoTime();
         /**
          * 这里拿到fu处理过后的texture，可以对这个texture做后续操作，如硬编、预览。
@@ -229,19 +230,18 @@ public class FaceunityWrapper {
         return fboTex[1];
     }
 
-    public boolean onPreviewFrame(byte[] bytes, int i, int i1, int i2, int i3, long l) {
-        Log.e(TAG, "onPreviewFrame = " + Thread.currentThread().getId() + " mCameraRotate = " + i2);
+    public boolean onPreviewFrame(byte[] data, int width, int height, int rotation, int fmt, long timestampNs) {
 
-        mCameraNV21Byte = bytes;
+        mCameraNV21Byte = data;
 
-        if (mCameraRotate != i2 || mCameraId != mCurrentCameraId || mCameraMatrix1 == null || mCameraMatrix2 == null) {
-            mCameraRotate = i2;
+        if (mCameraRotate != rotation || mCameraId != mCurrentCameraId || mCameraMatrix1 == null || mCameraMatrix2 == null) {
+            mCameraRotate = rotation;
             mCameraId = mCurrentCameraId;
             mCameraMatrix1 = new float[16];
             mCameraMatrix2 = new float[16];
             if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                Matrix.setRotateM(mCameraMatrix1, 0, -mCameraRotate, 0F, 0F, 1F);
-                Matrix.setRotateM(mCameraMatrix2, 0, mCameraRotate, 0F, 0F, 1F);
+                Matrix.setRotateM(mCameraMatrix1, 0, mCameraRotate, 0F, 0F, 1F);
+                Matrix.setRotateM(mCameraMatrix2, 0, -mCameraRotate, 0F, 0F, 1F);
             } else {
                 Matrix.setIdentityM(mCameraMatrix1, 0);
                 mCameraMatrix1[0] = -1;
@@ -360,6 +360,8 @@ public class FaceunityWrapper {
                             int tmp = itemsArray[1];
                             itemsArray[1] = mEffectItem = faceunity.fuCreateItemFromPackage(itemData);
                             faceunity.fuItemSetParam(mEffectItem, "isAndroid", 1.0);
+                            faceunity.fuItemSetParam(mEffectItem, "rotationAngle",
+                                    mCurrentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT ? 90 : 270);
                             if (tmp != 0) {
                                 faceunity.fuDestroyItem(tmp);
                             }
@@ -416,6 +418,9 @@ public class FaceunityWrapper {
     }
 
     private void deleteFBO() {
+        if (fboId == null || fboTex == null || renderBufferId == null) {
+            return;
+        }
         GLES20.glDeleteFramebuffers(2, fboId, 0);
         GLES20.glDeleteTextures(2, fboTex, 0);
         GLES20.glDeleteRenderbuffers(2, renderBufferId, 0);

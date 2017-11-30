@@ -23,5 +23,6 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.0.1'
     compile 'com.android.support:recyclerview-v7:25.0.1'
     compile 'org.adw.library:discrete-seekbar:1.0.1'
-    compile files('libs/nama.jar')
+
+    compile 'com.faceunity:nama:4.3.0'
 }

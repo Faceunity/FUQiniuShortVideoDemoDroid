@@ -48,11 +48,11 @@ public class MainActivity extends AppCompatActivity {
 
         ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.PREVIEW_SIZE_LEVEL_TIPS_ARRAY);
         mPreviewSizeLevelSpinner.setAdapter(adapter2);
-        mPreviewSizeLevelSpinner.setSelection(3);
+        mPreviewSizeLevelSpinner.setSelection(2);
 
         ArrayAdapter<String> adapter3 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_SIZE_LEVEL_TIPS_ARRAY);
         mEncodingSizeLevelSpinner.setAdapter(adapter3);
-        mEncodingSizeLevelSpinner.setSelection(10);
+        mEncodingSizeLevelSpinner.setSelection(7);
 
         ArrayAdapter<String> adapter4 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_BITRATE_LEVEL_TIPS_ARRAY);
         mEncodingBitrateLevelSpinner.setAdapter(adapter4);

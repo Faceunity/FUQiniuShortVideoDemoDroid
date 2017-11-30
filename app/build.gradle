@@ -33,7 +33,7 @@ dependencies {
     compile 'com.android.support:design:25+'
     compile 'com.android.support:recyclerview-v7:23+'
     compile 'com.android.support:appcompat-v7:23+'
-    compile files('libs/pldroid-shortvideo-1.2.1.jar')
+    compile files('libs/pldroid-shortvideo-1.7.0.jar')
     compile 'com.android.support:multidex:1.0.1'
     compile 'com.qiniu:qiniu-android-sdk:7.3.3'
     compile project(':faceunity')

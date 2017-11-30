@@ -3,6 +3,7 @@ package com.qiniu.pili.droid.shortvideo.demo.activity;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -16,8 +17,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 
-import com.faceunity.FaceunityControlView;
-import com.faceunity.FaceunityWrapper;
+import com.faceunity.wrapper.FaceunityControlView;
+import com.faceunity.wrapper.FaceunityWrapper;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
@@ -46,7 +47,7 @@ import java.io.IOException;
 
 public class VideoRecordActivity extends Activity
         implements PLRecordStateListener, PLVideoSaveListener, PLFocusListener {
-    private static final String TAG = "VideoRecordActivity";
+    private static final String TAG = VideoRecordActivity.class.getName();
 
     private PLShortVideoRecorder mShortVideoRecorder;
     private GLSurfaceView mGLSurfaceView;
@@ -136,9 +137,10 @@ public class VideoRecordActivity extends Activity
         mShortVideoRecorder.prepare(mGLSurfaceView, mCameraSetting, microphoneSetting, videoEncodeSetting,
                 audioEncodeSetting, null, recordSetting);
 
-        mFaceunityWrapper = new FaceunityWrapper(this, mCameraSetting.getCameraId());
+        mFaceunityWrapper = new FaceunityWrapper(this, mCameraSetting.getCameraId() == PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK);
 
         mControlView = (FaceunityControlView) findViewById(R.id.faceunity_control_layout);
+        mControlView.setOnViewEventListener(mFaceunityWrapper.initUIEventListener());
 
         mShortVideoRecorder.setVideoFilterListener(new PLVideoFilterListener() {
             private int surfaceWidth;
@@ -149,8 +151,8 @@ public class VideoRecordActivity extends Activity
 
             @Override
             public void onSurfaceCreated() {
+                Log.e(TAG, "onSurfaceCreated");
                 mFaceunityWrapper.onSurfaceCreated(VideoRecordActivity.this);
-                mControlView.setOnViewEventListener(mFaceunityWrapper.initUIEventListener());
             }
 
             @Override
@@ -161,11 +163,12 @@ public class VideoRecordActivity extends Activity
 
             @Override
             public void onSurfaceDestroy() {
+                Log.e(TAG, "onSurfaceDestroy");
                 mFaceunityWrapper.onSurfaceDestroyed();
             }
 
             @Override
-            public int onDrawFrame(int texId, int texWidth, int texHeight, long l) {
+            public int onDrawFrame(int texId, int texWidth, int texHeight, long timeStampNs, float[] transformMatrix) {
                 if (!isTrackerOnSurfaceChangedCalled) {
                     isTrackerOnSurfaceChangedCalled = true;
                     mFaceunityWrapper.onSurfaceChanged(surfaceWidth, surfaceHeight, texWidth, texHeight);
@@ -179,7 +182,7 @@ public class VideoRecordActivity extends Activity
                         }
                     });
                 }
-                return mFaceunityWrapper.onDrawFrame(texId, texWidth, texHeight);
+                return mFaceunityWrapper.onDrawFrame(texId, texWidth, texHeight, transformMatrix);
             }
         });
 
@@ -298,7 +301,7 @@ public class VideoRecordActivity extends Activity
     public void onClickSwitchCamera(View v) {
         mShortVideoRecorder.switchCamera();
         if (mFaceunityWrapper != null) {
-            mFaceunityWrapper.switchCamera(mCameraSetting.getCameraId());
+            mFaceunityWrapper.switchCamera(mCameraSetting.getCameraId() == PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK);
         }
     }
 

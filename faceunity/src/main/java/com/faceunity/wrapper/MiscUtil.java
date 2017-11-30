@@ -1,4 +1,4 @@
-package com.faceunity;
+package com.faceunity.wrapper;
 
 import android.app.Activity;
 import android.content.ContentResolver;

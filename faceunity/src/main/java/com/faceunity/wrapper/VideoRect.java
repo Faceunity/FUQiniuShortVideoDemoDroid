@@ -1,4 +1,4 @@
-package com.faceunity;
+package com.faceunity.wrapper;
 
 import android.hardware.Camera;
 import android.opengl.GLES20;

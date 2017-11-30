@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.faceunity.gles;
+package com.faceunity.wrapper.gles;
 
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
