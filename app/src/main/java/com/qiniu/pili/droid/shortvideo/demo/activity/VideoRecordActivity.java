@@ -171,7 +171,6 @@ public class VideoRecordActivity extends Activity
             public int onDrawFrame(int texId, int texWidth, int texHeight, long timeStampNs, float[] transformMatrix) {
                 if (!isTrackerOnSurfaceChangedCalled) {
                     isTrackerOnSurfaceChangedCalled = true;
-                    mFaceunityWrapper.onSurfaceChanged(surfaceWidth, surfaceHeight, texWidth, texHeight);
                 }
                 if (faceTrackingStatus != mFaceunityWrapper.getFaceTrackingStatus()) {
                     faceTrackingStatus = mFaceunityWrapper.getFaceTrackingStatus();
@@ -301,7 +300,7 @@ public class VideoRecordActivity extends Activity
     public void onClickSwitchCamera(View v) {
         mShortVideoRecorder.switchCamera();
         if (mFaceunityWrapper != null) {
-            mFaceunityWrapper.switchCamera(mCameraSetting.getCameraId() == PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK);
+            mFaceunityWrapper.setCameraId(mCameraSetting.getCameraId() == PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK);
         }
     }
 

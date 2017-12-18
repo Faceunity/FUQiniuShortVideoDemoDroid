@@ -50,6 +50,8 @@ public class FaceunityWrapper {
     private String mEffectFileName = EffectAndFilterSelectAdapter.EFFECT_ITEM_FILE_NAME[1];
 
     private int mCurrentCameraId;
+    private boolean isNeedUpdateEffectParam = true;
+    private int inputImageOrientation;
 
     private HandlerThread mCreateItemThread;
     private Handler mCreateItemHandler;
@@ -68,7 +70,7 @@ public class FaceunityWrapper {
     public FaceunityWrapper(Context context, int cameraFaceId) {
         Log.e(TAG, "FaceunityWrapper = " + Thread.currentThread().getId());
         mContext = context;
-        mCurrentCameraId = cameraFaceId;
+        setCameraId(cameraFaceId);
     }
 
     public void onSurfaceCreated(Context context) {
@@ -104,11 +106,6 @@ public class FaceunityWrapper {
 
     }
 
-    public void onSurfaceChanged(int width, int height, int previewWidth, int previewHeight) {
-        Log.e(TAG, "onSurfaceChanged width " + width + " height " + height + " previewWidth " + previewWidth + " previewHeight " + previewHeight);
-
-    }
-
     public void onSurfaceDestroyed() {
         Log.e(TAG, "onSurfaceDestroyed = " + Thread.currentThread().getId());
         mFrameId = 0;
@@ -132,14 +129,12 @@ public class FaceunityWrapper {
         oneHundredFrameFUTime = 0;
     }
 
-    public void switchCamera(int ordinal) {
-        Log.e(TAG, "switchCamera = " + Thread.currentThread().getId() + " ordinal = " + ordinal);
-        if (mCurrentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            mCurrentCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
-        } else {
-            mCurrentCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
-        }
-//        faceunity.fuOnCameraChange();
+    public void setCameraId(int CameraId) {
+        mCurrentCameraId = CameraId;
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(mCurrentCameraId, info);
+        inputImageOrientation = info.orientation;
+        isNeedUpdateEffectParam = true;
     }
 
     /**
@@ -188,6 +183,12 @@ public class FaceunityWrapper {
         if (isNeedEffectItem) {
             isNeedEffectItem = false;
             mCreateItemHandler.sendEmptyMessage(CreateItemHandler.HANDLE_CREATE_ITEM);
+        }
+
+        if (isNeedUpdateEffectParam) {
+            faceunity.fuItemSetParam(mEffectItem, "isAndroid", 1.0);
+            faceunity.fuItemSetParam(mEffectItem, "rotationAngle", (360 - inputImageOrientation));
+            isNeedUpdateEffectParam = false;
         }
 
         faceunity.fuItemSetParam(mFacebeautyItem, "color_level", mFacebeautyColorLevel);
@@ -260,29 +261,7 @@ public class FaceunityWrapper {
 
             @Override
             public void onBlurLevelSelected(int level) {
-                switch (level) {
-                    case 0:
-                        mFacebeautyBlurLevel = 0;
-                        break;
-                    case 1:
-                        mFacebeautyBlurLevel = 1.0f;
-                        break;
-                    case 2:
-                        mFacebeautyBlurLevel = 2.0f;
-                        break;
-                    case 3:
-                        mFacebeautyBlurLevel = 3.0f;
-                        break;
-                    case 4:
-                        mFacebeautyBlurLevel = 4.0f;
-                        break;
-                    case 5:
-                        mFacebeautyBlurLevel = 5.0f;
-                        break;
-                    case 6:
-                        mFacebeautyBlurLevel = 6.0f;
-                        break;
-                }
+                mFacebeautyBlurLevel = level;
             }
 
             @Override
@@ -300,7 +279,9 @@ public class FaceunityWrapper {
                 if (effectItemName.equals(mEffectFileName)) {
                     return;
                 }
-                mCreateItemHandler.removeMessages(CreateItemHandler.HANDLE_CREATE_ITEM);
+                if (mCreateItemHandler != null) {
+                    mCreateItemHandler.removeMessages(CreateItemHandler.HANDLE_CREATE_ITEM);
+                }
                 mEffectFileName = effectItemName;
                 isNeedEffectItem = true;
             }
@@ -359,9 +340,7 @@ public class FaceunityWrapper {
                             is.close();
                             int tmp = itemsArray[1];
                             itemsArray[1] = mEffectItem = faceunity.fuCreateItemFromPackage(itemData);
-                            faceunity.fuItemSetParam(mEffectItem, "isAndroid", 1.0);
-                            faceunity.fuItemSetParam(mEffectItem, "rotationAngle",
-                                    mCurrentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT ? 90 : 270);
+                            isNeedUpdateEffectParam = true;
                             if (tmp != 0) {
                                 faceunity.fuDestroyItem(tmp);
                             }
