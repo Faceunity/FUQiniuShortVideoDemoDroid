@@ -28,11 +28,35 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom">
         <!--effect select-->
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/effect_recycle_view"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/effect_item_select"
+            android:layout_width="match_parent"
+            android:layout_gravity="bottom"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"/>
+            android:orientation="vertical">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/effect_recycle_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"/>
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:src="@color/camera_line_gray"
+                android:layout_marginTop="@dimen/min_space"
+                android:layout_marginLeft="@dimen/max_space"
+                android:layout_marginRight="@dimen/max_space"/>
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/effect_group_text_btns_recylerview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginRight="@dimen/max_space"/>
+        </LinearLayout> <!--end of effect select-->
+
         <!--filter select-->
         <android.support.v7.widget.RecyclerView
             android:id="@+id/filter_recycle_view"

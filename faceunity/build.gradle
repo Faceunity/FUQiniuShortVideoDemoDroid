@@ -17,12 +17,22 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    sourceSets {
+        main.assets.srcDirs += ['src/main/assets', 'src/main/bundles/gesture', 'src/main/bundles/avatar',
+                                'src/main/bundles/changeface', 'src/main/bundles/filmfilter',
+                                'src/main/bundles/2D', 'src/main/bundles/3D',
+                                'src/main/bundles/magic', 'src/main/bundles/animoji']
+        main.res.srcDirs += ['src/mian/res',
+                             'src/main/bundles/2D/res', 'src/main/bundles/3D/res', 'src/main/bundles/filmfilter/res',
+                             'src/main/bundles/magic/res', 'src/main/bundles/changeface/res',
+                             'src/main/bundles/animoji/res', 'src/main/bundles/avatar/res', 'src/main/bundles/gesture/res']
+    }
 }
 
 dependencies {
     compile 'com.android.support:appcompat-v7:25.0.1'
     compile 'com.android.support:recyclerview-v7:25.0.1'
     compile 'org.adw.library:discrete-seekbar:1.0.1'
-
+    compile 'de.hdodenhof:circleimageview:2.1.0'
     compile 'com.faceunity:nama:4.3.0'
 }

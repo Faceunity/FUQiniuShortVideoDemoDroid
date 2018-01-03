@@ -14,9 +14,6 @@ public class EffectAndFilterSelectAdapter extends RecyclerView.Adapter<EffectAnd
             R.mipmap.ic_delete_all, R.mipmap.yuguan, R.mipmap.bgseg, R.mipmap.lixiaolong, R.mipmap.matianyu,
             R.mipmap.yazui, R.mipmap.mood, R.mipmap.item0204
     };
-    public static final String[] EFFECT_ITEM_FILE_NAME = {"none", "yuguan.bundle", "bg_seg.bundle", "lixiaolong.bundle",
-            "mask_matianyu.bundle", "yazui.bundle", "Mood.bundle", "item0204.bundle"
-    };
 
     public static final int[] FILTER_ITEM_RES_ARRAY = {
             R.mipmap.nature, R.mipmap.delta, R.mipmap.electric, R.mipmap.slowlived, R.mipmap.tokyo, R.mipmap.warm

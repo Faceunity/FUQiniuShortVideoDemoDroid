@@ -21,8 +21,11 @@ public class FaceunityControlView extends LinearLayout {
 
     private Context mContext;
 
+    private LinearLayout mEffectSelectLin;
+    private RecyclerView mEffectGroupTextBtnsRecyclerView;
+    private EffectButtonRecyclerViewAdapter mEffectBtnsRecyclerViewAdapter;
     private RecyclerView mEffectRecyclerView;
-    private EffectAndFilterSelectAdapter mEffectRecyclerAdapter;
+    private EffectRecycleViewAdapter mEffectRecyclerAdapter;
     private RecyclerView mFilterRecyclerView;
     private EffectAndFilterSelectAdapter mFilterRecyclerAdapter;
 
@@ -64,19 +67,53 @@ public class FaceunityControlView extends LinearLayout {
 
         LayoutInflater.from(context).inflate(R.layout.faceunity_view, this);
 
+        mEffectSelectLin = (LinearLayout) findViewById(R.id.effect_item_select);
+
         mEffectRecyclerView = (RecyclerView) findViewById(R.id.effect_recycle_view);
-        mEffectRecyclerView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.HORIZONTAL, false));
-        mEffectRecyclerAdapter = new EffectAndFilterSelectAdapter(mEffectRecyclerView, EffectAndFilterSelectAdapter.RECYCLEVIEW_TYPE_EFFECT);
-        mEffectRecyclerAdapter.setOnItemSelectedListener(new EffectAndFilterSelectAdapter.OnItemSelectedListener() {
+        mEffectRecyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
+        mEffectRecyclerAdapter = new EffectRecycleViewAdapter(mEffectRecyclerView,
+                EffectRecycleViewAdapter.RECYCLEVIEW_TYPE_EFFECT,
+                EffectRecycleViewAdapter.EFFECT_GROUP_ID_FIRST);//first group
+        mEffectRecyclerAdapter.setOnItemSelectedListener(new EffectRecycleViewAdapter.OnItemSelectedListener() {
             @Override
-            public void onItemSelected(int itemPosition) {
+            public void onItemSelected(int itemPosition, int recycleViewType, int effectGroupId) {
                 if (mOnViewEventListener == null) {
                     return;
                 }
-                mOnViewEventListener.onEffectItemSelected(EffectAndFilterSelectAdapter.EFFECT_ITEM_FILE_NAME[itemPosition]);
+                mOnViewEventListener.onEffectItemSelected(FaceunityWrapper.EFFECT_ITEM_FILE_NAME[effectGroupId][itemPosition]);
             }
         });
         mEffectRecyclerView.setAdapter(mEffectRecyclerAdapter);
+
+        mEffectGroupTextBtnsRecyclerView = (RecyclerView) findViewById(R.id.effect_group_text_btns_recylerview);
+        mEffectGroupTextBtnsRecyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
+        mEffectBtnsRecyclerViewAdapter = new EffectButtonRecyclerViewAdapter(mEffectGroupTextBtnsRecyclerView, context);
+        mEffectBtnsRecyclerViewAdapter.setEffectGroupBtnOnClickListener(new EffectButtonRecyclerViewAdapter.EffectGroupBtnOnClickListener() {
+            @Override
+            public void onClick(int groupID) {
+//                Logger.d(TAG, "effect group select id " + groupID);
+                if (mEffectRecyclerAdapter.getEffectGroupId() != groupID) {
+                    mEffectRecyclerAdapter.setEffectGroupId(groupID, false);
+                    mEffectRecyclerView.setAdapter(mEffectRecyclerAdapter);
+                }
+
+            }
+        });
+        mEffectGroupTextBtnsRecyclerView.setAdapter(mEffectBtnsRecyclerViewAdapter);
+
+//        mEffectRecyclerView = (RecyclerView) findViewById(R.id.effect_recycle_view);
+//        mEffectRecyclerView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.HORIZONTAL, false));
+//        mEffectRecyclerAdapter = new EffectAndFilterSelectAdapter(mEffectRecyclerView, EffectAndFilterSelectAdapter.RECYCLEVIEW_TYPE_EFFECT);
+//        mEffectRecyclerAdapter.setOnItemSelectedListener(new EffectAndFilterSelectAdapter.OnItemSelectedListener() {
+//            @Override
+//            public void onItemSelected(int itemPosition) {
+//                if (mOnViewEventListener == null) {
+//                    return;
+//                }
+//                mOnViewEventListener.onEffectItemSelected(EffectAndFilterSelectAdapter.EFFECT_ITEM_FILE_NAME[itemPosition]);
+//            }
+//        });
+//        mEffectRecyclerView.setAdapter(mEffectRecyclerAdapter);
 
         mFilterRecyclerView = (RecyclerView) findViewById(R.id.filter_recycle_view);
         mFilterRecyclerView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.HORIZONTAL, false));
@@ -234,7 +271,7 @@ public class FaceunityControlView extends LinearLayout {
             @Override
             public void onClick(View v) {
                 setEffectFilterBeautyChooseBtnTextColor(mChooseEffectBtn);
-                setEffectFilterBeautyChooseBlock(mEffectRecyclerView);
+                setEffectFilterBeautyChooseBlock(mEffectSelectLin);
             }
         });
 
@@ -344,7 +381,7 @@ public class FaceunityControlView extends LinearLayout {
     }
 
     private void setEffectFilterBeautyChooseBlock(View v) {
-        mEffectRecyclerView.setVisibility(View.INVISIBLE);
+        mEffectSelectLin.setVisibility(View.INVISIBLE);
         mFilterRecyclerView.setVisibility(View.INVISIBLE);
         mFaceShapeSelect.setVisibility(View.INVISIBLE);
         mBlurLevelSelect.setVisibility(View.INVISIBLE);

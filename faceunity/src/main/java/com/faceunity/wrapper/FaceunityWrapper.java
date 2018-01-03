@@ -20,6 +20,32 @@ import java.io.InputStream;
 public class FaceunityWrapper {
     private static final String TAG = FaceunityWrapper.class.getName();
 
+    public final static String[][] EFFECT_ITEM_FILE_NAME = {
+            /*Animoji*/
+            {"none", "xiongmao2.bundle"},
+
+            /*3D*/
+            {"none", "sdx2.bundle", "itd.bundle"},
+
+            /*2D*/
+            {"none", "multi_dianji_crt_fu.bundle", "lhudie_zh_fu.bundle"},
+
+            /*face change*/
+            {"none", "afd.bundle", "baozi.mp3"},
+
+            /*Avatar*/
+            {"none", "nick.bundle"},
+
+            /*magic*/
+            {"none", "hez_ztt_fu.bundle", "xiandai_ztt_fu.bundle"},
+
+            /*gesture*/
+            {"none", "fu_ztt_live520.bundle", "fu_zh_baoquan.bundle",},
+
+            /*film filter*/
+            {"none", "f_gradient.bundle", "f_movie.bundle"},
+    };
+
     private Context mContext;
 
     private int mCameraRotate;
@@ -47,7 +73,7 @@ public class FaceunityWrapper {
     private String mFilterName = EffectAndFilterSelectAdapter.FILTERS_NAME[0];
 
     private boolean isNeedEffectItem = true;
-    private String mEffectFileName = EffectAndFilterSelectAdapter.EFFECT_ITEM_FILE_NAME[1];
+    private String mEffectFileName = EFFECT_ITEM_FILE_NAME[0][1];
 
     private int mCurrentCameraId;
     private boolean isNeedUpdateEffectParam = true;
@@ -330,6 +356,7 @@ public class FaceunityWrapper {
             switch (msg.what) {
                 case HANDLE_CREATE_ITEM:
                     try {
+                        final int tmp = itemsArray[1];
                         if (mEffectFileName.equals("none")) {
                             itemsArray[1] = mEffectItem = 0;
                         } else {
@@ -338,12 +365,11 @@ public class FaceunityWrapper {
                             int len = is.read(itemData);
                             Log.e("FU", "effect len " + len);
                             is.close();
-                            int tmp = itemsArray[1];
                             itemsArray[1] = mEffectItem = faceunity.fuCreateItemFromPackage(itemData);
                             isNeedUpdateEffectParam = true;
-                            if (tmp != 0) {
-                                faceunity.fuDestroyItem(tmp);
-                            }
+                        }
+                        if (tmp != 0) {
+                            faceunity.fuDestroyItem(tmp);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
