@@ -3,9 +3,10 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/FUQiniuShortVideoDemoDroid.iml" filepath="$PROJECT_DIR$/FUQiniuShortVideoDemoDroid.iml" />
-      <module fileurl="file://C:\Users\zxcv\Desktop\Faceunity\FUQiniuShotVideo\FUQiniuShortVideoDemoDroid\PLDroidShortVideoDemo.iml" filepath="C:\Users\zxcv\Desktop\Faceunity\FUQiniuShotVideo\FUQiniuShortVideoDemoDroid\PLDroidShortVideoDemo.iml" />
+      <module fileurl="file://H:\AndroidStudioProjects\FUQiniuShortVideoDemoDroid\PLDroidShortVideoDemo.iml" filepath="H:\AndroidStudioProjects\FUQiniuShortVideoDemoDroid\PLDroidShortVideoDemo.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/faceunity/faceunity.iml" filepath="$PROJECT_DIR$/faceunity/faceunity.iml" />
+      <module fileurl="file://H:\AndroidStudioProjects\FUQiniuShortVideoDemoDroid\kiwi\kiwi.iml" filepath="H:\AndroidStudioProjects\FUQiniuShortVideoDemoDroid\kiwi\kiwi.iml" />
     </modules>
   </component>
 </project>

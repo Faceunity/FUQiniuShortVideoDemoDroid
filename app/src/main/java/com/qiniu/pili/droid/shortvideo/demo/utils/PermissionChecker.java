@@ -28,7 +28,7 @@ public class PermissionChecker {
      */
     private boolean verifyPermissions(int[] grantResults) {
         // At least one result must be checked.
-        if (grantResults.length < 1) {
+        if (grantResults.length < 1){
             return false;
         }
 
@@ -73,7 +73,8 @@ public class PermissionChecker {
                                         REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
                             }
                         });
-            } else {
+            }
+            else {
                 mActivity.requestPermissions(permissionsList.toArray(new String[permissionsList.size()]),
                         REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
             }

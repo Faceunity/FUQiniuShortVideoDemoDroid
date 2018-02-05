@@ -31,7 +31,7 @@ public class AudioMixSettingDialog extends BottomSheetDialog {
         void onPositionSelected(long position);
     }
 
-    public AudioMixSettingDialog(Context context) {
+    public AudioMixSettingDialog(Context context){
         super(context);
     }
 
@@ -96,6 +96,10 @@ public class AudioMixSettingDialog extends BottomSheetDialog {
 
     public void setSrcVolumeProgress(int progress) {
         mSrcVolumeSeekBar.setProgress(progress);
+    }
+
+    public int getSrcVolumeProgress() {
+        return mSrcVolumeSeekBar.getProgress();
     }
 
     public void setMixVolumeProgress(int progress) {

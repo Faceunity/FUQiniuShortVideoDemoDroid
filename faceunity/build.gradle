@@ -34,5 +34,5 @@ dependencies {
     compile 'com.android.support:recyclerview-v7:25.0.1'
     compile 'org.adw.library:discrete-seekbar:1.0.1'
     compile 'de.hdodenhof:circleimageview:2.1.0'
-    compile 'com.faceunity:nama:4.3.0'
+    compile 'com.faceunity:nama:4.6.0'
 }

@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Spinner mPreviewSizeRatioSpinner;
     private Spinner mPreviewSizeLevelSpinner;
+    private Spinner mEncodingModeLevelSpinner;
     private Spinner mEncodingSizeLevelSpinner;
     private Spinner mEncodingBitrateLevelSpinner;
 
@@ -40,86 +41,117 @@ public class MainActivity extends AppCompatActivity {
 
         mPreviewSizeRatioSpinner = (Spinner) findViewById(R.id.PreviewSizeRatioSpinner);
         mPreviewSizeLevelSpinner = (Spinner) findViewById(R.id.PreviewSizeLevelSpinner);
+        mEncodingModeLevelSpinner = (Spinner) findViewById(R.id.EncodingModeLevelSpinner);
         mEncodingSizeLevelSpinner = (Spinner) findViewById(R.id.EncodingSizeLevelSpinner);
         mEncodingBitrateLevelSpinner = (Spinner) findViewById(R.id.EncodingBitrateLevelSpinner);
 
-        ArrayAdapter<String> adapter1 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.PREVIEW_SIZE_RATIO_TIPS_ARRAY);
-        mPreviewSizeRatioSpinner.setAdapter(adapter1);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.PREVIEW_SIZE_RATIO_TIPS_ARRAY);
+        mPreviewSizeRatioSpinner.setAdapter(adapter);
 
-        ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.PREVIEW_SIZE_LEVEL_TIPS_ARRAY);
-        mPreviewSizeLevelSpinner.setAdapter(adapter2);
-        mPreviewSizeLevelSpinner.setSelection(2);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.PREVIEW_SIZE_LEVEL_TIPS_ARRAY);
+        mPreviewSizeLevelSpinner.setAdapter(adapter);
+        mPreviewSizeLevelSpinner.setSelection(3);
 
-        ArrayAdapter<String> adapter3 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_SIZE_LEVEL_TIPS_ARRAY);
-        mEncodingSizeLevelSpinner.setAdapter(adapter3);
+        adapter= new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_MODE_LEVEL_TIPS_ARRAY);
+        mEncodingModeLevelSpinner.setAdapter(adapter);
+        mEncodingModeLevelSpinner.setSelection(0);
+
+        adapter= new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_SIZE_LEVEL_TIPS_ARRAY);
+        mEncodingSizeLevelSpinner.setAdapter(adapter);
         mEncodingSizeLevelSpinner.setSelection(7);
 
-        ArrayAdapter<String> adapter4 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_BITRATE_LEVEL_TIPS_ARRAY);
-        mEncodingBitrateLevelSpinner.setAdapter(adapter4);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_BITRATE_LEVEL_TIPS_ARRAY);
+        mEncodingBitrateLevelSpinner.setAdapter(adapter);
         mEncodingBitrateLevelSpinner.setSelection(2);
     }
 
-    public void onClickCapture(View v) {
+    private boolean isPermissionOK() {
         PermissionChecker checker = new PermissionChecker(this);
         boolean isPermissionOK = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checker.checkPermission();
         if (!isPermissionOK) {
             ToastUtils.s(this, "Some permissions is not approved !!!");
-        } else {
-            jumpToCaptureActivity(VideoRecordActivity.class);
+        }
+        return isPermissionOK;
+    }
+
+    public void onClickCapture(View v) {
+        if (isPermissionOK()) {
+            jumpToCaptureActivity();
+        }
+    }
+
+    public void onClickAudioCapture(View v) {
+        if (isPermissionOK()) {
+            jumpToAudioCaptureActivity();
         }
     }
 
     public void onClickImport(View v) {
-        PermissionChecker checker = new PermissionChecker(this);
-        boolean isPermissionOK = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checker.checkPermission();
-        if (!isPermissionOK) {
-            ToastUtils.s(this, "Some permissions is not approved !!!");
-        } else {
-            jumpToImportActivity();
+        if (isPermissionOK()) {
+            jumpToActivity(VideoTrimActivity.class);
         }
     }
 
     public void onClickTranscode(View v) {
-        PermissionChecker checker = new PermissionChecker(this);
-        boolean isPermissionOK = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checker.checkPermission();
-        if (!isPermissionOK) {
-            ToastUtils.s(this, "Some permissions is not approved !!!");
-        } else {
-            jumpToTranscodeActivity();
+        if (isPermissionOK()) {
+            jumpToActivity(VideoTranscodeActivity.class);
         }
     }
 
+    public void onClickMakeGIF(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(MakeGIFActivity.class);
+        }
+    }
+  
     public void onClickScreenRecord(View v) {
-        PermissionChecker checker = new PermissionChecker(this);
-        boolean isPermissionOK = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checker.checkPermission();
-        if (!isPermissionOK) {
-            ToastUtils.s(this, "Some permissions is not approved !!!");
-        } else {
-            jumpToScreenRecordActivity();
+        if (isPermissionOK()) {
+            jumpToActivity(ScreenRecordActivity.class);
         }
     }
 
-    private void jumpToImportActivity() {
-        Intent intent = new Intent(MainActivity.this, VideoTrimActivity.class);
-        startActivity(intent);
+    public void onClickVideoCompose(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(VideoComposeActivity.class);
+        }
     }
 
-    private void jumpToTranscodeActivity() {
-        Intent intent = new Intent(MainActivity.this, VideoTranscodeActivity.class);
-        startActivity(intent);
+    public void onClickImageCompose(View v){
+        if (isPermissionOK()) {
+            jumpToActivity(ImageComposeActivity.class);
+        }
     }
 
-    private void jumpToScreenRecordActivity() {
-        Intent intent = new Intent(MainActivity.this, ScreenRecordActivity.class);
-        startActivity(intent);
+    public void onClickAR(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(ArRecordActivity.class);
+        }
     }
 
-    public void jumpToCaptureActivity(Class<?> cls) {
+    public void onClickDraftBox(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(DraftBoxActivity.class);
+        }
+    }
+
+    private void jumpToActivity(Class<?> cls) {
         Intent intent = new Intent(MainActivity.this, cls);
-        intent.putExtra("PreviewSizeRatio", mPreviewSizeRatioSpinner.getSelectedItemPosition());
-        intent.putExtra("PreviewSizeLevel", mPreviewSizeLevelSpinner.getSelectedItemPosition());
-        intent.putExtra("EncodingSizeLevel", mEncodingSizeLevelSpinner.getSelectedItemPosition());
-        intent.putExtra("EncodingBitrateLevel", mEncodingBitrateLevelSpinner.getSelectedItemPosition());
+        startActivity(intent);
+    }
+
+    public void jumpToCaptureActivity() {
+        Intent intent = new Intent(MainActivity.this, VideoRecordActivity.class);
+        intent.putExtra(VideoRecordActivity.PREVIEW_SIZE_RATIO, mPreviewSizeRatioSpinner.getSelectedItemPosition());
+        intent.putExtra(VideoRecordActivity.PREVIEW_SIZE_LEVEL, mPreviewSizeLevelSpinner.getSelectedItemPosition());
+        intent.putExtra(VideoRecordActivity.ENCODING_MODE, mEncodingModeLevelSpinner.getSelectedItemPosition());
+        intent.putExtra(VideoRecordActivity.ENCODING_SIZE_LEVEL, mEncodingSizeLevelSpinner.getSelectedItemPosition());
+        intent.putExtra(VideoRecordActivity.ENCODING_BITRATE_LEVEL, mEncodingBitrateLevelSpinner.getSelectedItemPosition());
+        startActivity(intent);
+    }
+
+    public void jumpToAudioCaptureActivity() {
+        Intent intent = new Intent(MainActivity.this, AudioRecordActivity.class);
+        intent.putExtra(AudioRecordActivity.ENCODING_MODE, mEncodingModeLevelSpinner.getSelectedItemPosition());
         startActivity(intent);
     }
 

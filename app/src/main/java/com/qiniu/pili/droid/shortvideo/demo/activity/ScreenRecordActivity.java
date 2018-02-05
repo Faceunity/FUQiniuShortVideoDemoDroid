@@ -8,6 +8,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -39,9 +40,9 @@ public class ScreenRecordActivity extends AppCompatActivity implements PLScreenR
             mScreenRecorder.setRecordStateListener(this);
             PLScreenRecorderSetting screenSetting = new PLScreenRecorderSetting();
             screenSetting.setRecordFile(Config.SCREEN_RECORD_FILE_PATH)
-                    .setInputAudioEnabled(false)
-                    .setSize(width, height)
-                    .setDpi(dpi);
+                            .setInputAudioEnabled(false)
+                            .setSize(width, height)
+                            .setDpi(dpi);
             PLMicrophoneSetting microphoneSetting = new PLMicrophoneSetting();
             mScreenRecorder.prepare(screenSetting, microphoneSetting);
         }
@@ -67,6 +68,13 @@ public class ScreenRecordActivity extends AppCompatActivity implements PLScreenR
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_screen_record);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(false);
+        }
+
+        setTitle(R.string.title_screen_record);
 
         mTipTextView = (TextView) findViewById(R.id.tip);
         FloatingActionButton fab_rec = (FloatingActionButton) findViewById(R.id.fab_rec);
@@ -101,6 +109,17 @@ public class ScreenRecordActivity extends AppCompatActivity implements PLScreenR
                 PlaybackActivity.start(ScreenRecordActivity.this, Config.SCREEN_RECORD_FILE_PATH);
             }
         });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+            default:
+                break;
+        }
+        return true;
     }
 
     @Override
@@ -174,7 +193,7 @@ public class ScreenRecordActivity extends AppCompatActivity implements PLScreenR
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                String tip = "已经停止录屏！";
+                String tip =  "已经停止录屏！";
                 updateTip(tip);
             }
         });

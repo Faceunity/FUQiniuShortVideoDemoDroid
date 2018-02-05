@@ -9,23 +9,21 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import static com.faceunity.wrapper.EffectAndFilterSelectAdapter.RECYCLEVIEW_TYPE_EFFECT;
+
 /**
  * Created by lirui on 2017/1/20.
  */
 
 public class EffectAndFilterItemView extends LinearLayout {
+
     private ImageView mItemIcon;
     private TextView mItemText;
 
-    private int mItemType;//effect or filter
+    private int mItemType = RECYCLEVIEW_TYPE_EFFECT;//effect or filter
 
-    public EffectAndFilterItemView(Context context, int itemType) {
+    public EffectAndFilterItemView(Context context) {
         super(context);
-        this.mItemType = itemType;
-        init(context);
-    }
-
-    private void init(Context context) {
         LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         setLayoutParams(params);
@@ -33,13 +31,19 @@ public class EffectAndFilterItemView extends LinearLayout {
                 this, true);
         mItemIcon = (ImageView) viewRoot.findViewById(R.id.item_icon);
         mItemText = (TextView) viewRoot.findViewById(R.id.item_text);
-        if (mItemType == EffectAndFilterSelectAdapter.RECYCLEVIEW_TYPE_FILTER) {
+        init();
+    }
+
+    private void init() {
+        if (mItemType == RECYCLEVIEW_TYPE_EFFECT) {
+            mItemText.setVisibility(GONE);
+        } else {
             mItemText.setVisibility(VISIBLE);
         }
     }
 
     public void setUnselectedBackground() {
-        if (mItemType == EffectAndFilterSelectAdapter.RECYCLEVIEW_TYPE_EFFECT) {
+        if (mItemType == RECYCLEVIEW_TYPE_EFFECT) {
             mItemIcon.setBackground(getResources().getDrawable(R.drawable.effect_item_circle_unselected));
         } else {
             mItemIcon.setBackgroundColor(Color.parseColor("#00000000"));
@@ -47,7 +51,7 @@ public class EffectAndFilterItemView extends LinearLayout {
     }
 
     public void setSelectedBackground() {
-        if (mItemType == EffectAndFilterSelectAdapter.RECYCLEVIEW_TYPE_EFFECT) {
+        if (mItemType == RECYCLEVIEW_TYPE_EFFECT) {
             mItemIcon.setBackground(getResources().getDrawable(R.drawable.effect_item_circle_selected));
         } else {
             mItemIcon.setBackground(getResources().getDrawable(R.drawable.effect_item_square_selected));
@@ -60,5 +64,10 @@ public class EffectAndFilterItemView extends LinearLayout {
 
     public void setItemText(String text) {
         mItemText.setText(text);
+    }
+
+    public void setItemType(int itemType) {
+        mItemType = itemType;
+        init();
     }
 }

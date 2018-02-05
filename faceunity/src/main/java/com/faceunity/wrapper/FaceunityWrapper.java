@@ -15,6 +15,7 @@ import com.faceunity.wrapper.gles.Texture2dProgram;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 
 public class FaceunityWrapper {
@@ -58,15 +59,16 @@ public class FaceunityWrapper {
 
     private int mFrameId = 0;
 
-    private int mFacebeautyItem = 0; //美颜道具
-    private int mEffectItem = 0; //贴纸道具
-    private int[] itemsArray = {mFacebeautyItem, mEffectItem};
+    private int mFaceBeautyItem = 0; //美颜道具
+    private volatile EffectItem mEffectItem = new EffectItem(); //贴纸道具
 
-    private float mFacebeautyColorLevel = 0.2f;
-    private float mFacebeautyBlurLevel = 6.0f;
-    private float mFacebeautyCheeckThin = 1.0f;
-    private float mFacebeautyEnlargeEye = 0.5f;
-    private float mFacebeautyRedLevel = 0.5f;
+    private float mFilterLevel = 1.0f;
+    private float mFaceBeautyColorLevel = 0.2f;
+    private float mFaceBeautyBlurLevel = 6.0f;
+    private float mFaceBeautyALLBlurLevel = 0.0f;
+    private float mFaceBeautyCheekThin = 1.0f;
+    private float mFaceBeautyEnlargeEye = 0.5f;
+    private float mFaceBeautyRedLevel = 0.5f;
     private int mFaceShape = 3;
     private float mFaceShapeLevel = 0.5f;
 
@@ -76,7 +78,6 @@ public class FaceunityWrapper {
     private String mEffectFileName = EFFECT_ITEM_FILE_NAME[0][1];
 
     private int mCurrentCameraId;
-    private boolean isNeedUpdateEffectParam = true;
     private int inputImageOrientation;
 
     private HandlerThread mCreateItemThread;
@@ -109,22 +110,27 @@ public class FaceunityWrapper {
                 Texture2dProgram.ProgramType.TEXTURE_2D));
 
         try {
-            InputStream is = context.getAssets().open("v3.mp3");
+            InputStream is = context.getAssets().open("v3.bundle");
             byte[] v3data = new byte[is.available()];
             int len = is.read(v3data);
             is.close();
             faceunity.fuSetup(v3data, null, authpack.A());
-            //faceunity.fuSetMaxFaces(1);
-            Log.e(TAG, "fuSetup version " + faceunity.fuGetVersion());
+            //faceunity.fuSetMaxFaces(1);//设置最大识别人脸数目
             Log.e(TAG, "fuSetup v3 len " + len);
 
-            is = context.getAssets().open("face_beautification.mp3");
+            is = context.getAssets().open("anim_model.bundle");
+            byte[] animModelData = new byte[is.available()];
+            is.read(animModelData);
+            is.close();
+            faceunity.fuLoadAnimModel(animModelData);
+            faceunity.fuSetExpressionCalibration(1);
+
+            is = context.getAssets().open("face_beautification.bundle");
             byte[] itemData = new byte[is.available()];
             len = is.read(itemData);
             Log.e(TAG, "beautification len " + len);
             is.close();
-            mFacebeautyItem = faceunity.fuCreateItemFromPackage(itemData);
-            itemsArray[0] = mFacebeautyItem;
+            mFaceBeautyItem = faceunity.fuCreateItemFromPackage(itemData);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -141,13 +147,12 @@ public class FaceunityWrapper {
         mCreateItemThread.quitSafely();
         mCreateItemThread = null;
 
+        mEffectItem = new EffectItem();
+        mFaceBeautyItem = 0;
         //Note: 切忌使用一个已经destroy的item
-        faceunity.fuDestroyItem(mEffectItem);
-        itemsArray[1] = mEffectItem = 0;
-        faceunity.fuDestroyItem(mFacebeautyItem);
-        itemsArray[0] = mFacebeautyItem = 0;
-        faceunity.fuOnDeviceLost();
+        faceunity.fuDestroyAllItems();
         isNeedEffectItem = true;
+        faceunity.fuOnDeviceLost();
 
         deleteFBO();
 
@@ -160,7 +165,7 @@ public class FaceunityWrapper {
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(mCurrentCameraId, info);
         inputImageOrientation = info.orientation;
-        isNeedUpdateEffectParam = true;
+        mEffectItem.paramReady = false;
     }
 
     /**
@@ -211,20 +216,22 @@ public class FaceunityWrapper {
             mCreateItemHandler.sendEmptyMessage(CreateItemHandler.HANDLE_CREATE_ITEM);
         }
 
-        if (isNeedUpdateEffectParam) {
-            faceunity.fuItemSetParam(mEffectItem, "isAndroid", 1.0);
-            faceunity.fuItemSetParam(mEffectItem, "rotationAngle", (360 - inputImageOrientation));
-            isNeedUpdateEffectParam = false;
+        if (!mEffectItem.paramReady) {
+            faceunity.fuItemSetParam(mEffectItem.item, "isAndroid", 1.0);
+            faceunity.fuItemSetParam(mEffectItem.item, "rotationAngle", (360 - inputImageOrientation));
+            mEffectItem.paramReady = true;
         }
 
-        faceunity.fuItemSetParam(mFacebeautyItem, "color_level", mFacebeautyColorLevel);
-        faceunity.fuItemSetParam(mFacebeautyItem, "blur_level", mFacebeautyBlurLevel);
-        faceunity.fuItemSetParam(mFacebeautyItem, "filter_name", mFilterName);
-        faceunity.fuItemSetParam(mFacebeautyItem, "cheek_thinning", mFacebeautyCheeckThin);
-        faceunity.fuItemSetParam(mFacebeautyItem, "eye_enlarging", mFacebeautyEnlargeEye);
-        faceunity.fuItemSetParam(mFacebeautyItem, "face_shape", mFaceShape);
-        faceunity.fuItemSetParam(mFacebeautyItem, "face_shape_level", mFaceShapeLevel);
-        faceunity.fuItemSetParam(mFacebeautyItem, "red_level", mFacebeautyRedLevel);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "filter_level", mFilterLevel);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "color_level", mFaceBeautyColorLevel);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "blur_level", mFaceBeautyBlurLevel);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "skin_detect", mFaceBeautyALLBlurLevel);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "filter_name", mFilterName);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "cheek_thinning", mFaceBeautyCheekThin);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "eye_enlarging", mFaceBeautyEnlargeEye);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "face_shape", mFaceShape);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "face_shape_level", mFaceShapeLevel);
+        faceunity.fuItemSetParam(mFaceBeautyItem, "red_level", mFaceBeautyRedLevel);
 
         //faceunity.fuItemSetParam(mFacebeautyItem, "use_old_blur", 1);
 
@@ -246,8 +253,13 @@ public class FaceunityWrapper {
         /**
          * 这里拿到fu处理过后的texture，可以对这个texture做后续操作，如硬编、预览。
          */
-        int fuTex = faceunity.fuDualInputToTexture(fuImgNV21Bytes, fboTex[0], flags,
-                texHeight, texWidth, mFrameId++, itemsArray);
+        int fuTex;
+        if (mEffectItem.isAvatar) {
+            fuTex = drawAvatar(texHeight, texWidth);
+        } else {
+            fuTex = faceunity.fuDualInputToTexture(fuImgNV21Bytes, fboTex[0], flags,
+                    texHeight, texWidth, mFrameId++, new int[]{mFaceBeautyItem, mEffectItem.item});
+        }
         long fuEndTime = System.nanoTime();
         oneHundredFrameFUTime += fuEndTime - fuStartTime;
 
@@ -281,40 +293,79 @@ public class FaceunityWrapper {
         return false;
     }
 
+    float[] expressionData = new float[46];
+    float[] rotationData = new float[4];
+    float[] pupilPosData = new float[2];
+    float[] rotationModeData = new float[1];
+
+    int drawAvatar(int mCameraWidth, int mCameraHeight) {
+        faceunity.fuTrackFace(mCameraNV21Byte, 0, mCameraWidth, mCameraHeight);
+
+        /**
+         *rotation
+         */
+        Arrays.fill(rotationData, 0.0f);
+        faceunity.fuGetFaceInfo(0, "rotation", rotationData);
+        /**
+         * expression
+         */
+        Arrays.fill(expressionData, 0.0f);
+        faceunity.fuGetFaceInfo(0, "expression", expressionData);
+
+        /**
+         * pupil pos
+         */
+        Arrays.fill(pupilPosData, 0.0f);
+        faceunity.fuGetFaceInfo(0, "pupil_pos", pupilPosData);
+
+        /**
+         * rotation mode
+         */
+        Arrays.fill(rotationModeData, 0.0f);
+        faceunity.fuGetFaceInfo(0, "rotation_mode", rotationModeData);
+
+        int isTracking = faceunity.fuIsTracking();
+
+        //rotation 是一个4元数，如果还没获取到，就使用1,0,0,0
+        if (isTracking <= 0) {
+            rotationData[3] = 1.0f;
+        }
+
+        /**
+         * adjust rotation mode
+         */
+        if (isTracking <= 0) {
+            rotationModeData[0] = (360 - mCameraRotate) / 90;
+        }
+
+        return faceunity.fuAvatarToTexture(pupilPosData,
+                expressionData,
+                rotationData,
+                rotationModeData,
+                0,
+                mCameraWidth,
+                mCameraHeight,
+                mFrameId++,
+                new int[]{mEffectItem.item},
+                isTracking);
+    }
+
     public FaceunityControlView.OnViewEventListener initUIEventListener() {
 
         FaceunityControlView.OnViewEventListener eventListener = new FaceunityControlView.OnViewEventListener() {
-
             @Override
-            public void onBlurLevelSelected(int level) {
-                mFacebeautyBlurLevel = level;
-            }
-
-            @Override
-            public void onCheekThinSelected(int progress, int max) {
-                mFacebeautyCheeckThin = 1.0f * progress / max;
-            }
-
-            @Override
-            public void onColorLevelSelected(int progress, int max) {
-                mFacebeautyColorLevel = 1.0f * progress / max;
-            }
-
-            @Override
-            public void onEffectItemSelected(String effectItemName) {
+            public void onEffectSelected(String effectItemName) {
                 if (effectItemName.equals(mEffectFileName)) {
                     return;
                 }
-                if (mCreateItemHandler != null) {
-                    mCreateItemHandler.removeMessages(CreateItemHandler.HANDLE_CREATE_ITEM);
-                }
+                mCreateItemHandler.removeMessages(CreateItemHandler.HANDLE_CREATE_ITEM);
                 mEffectFileName = effectItemName;
                 isNeedEffectItem = true;
             }
 
             @Override
-            public void onEnlargeEyeSelected(int progress, int max) {
-                mFacebeautyEnlargeEye = 1.0f * progress / max;
+            public void onFilterLevelSelected(int progress, int max) {
+                mFilterLevel = 1.0f * progress / max;
             }
 
             @Override
@@ -323,8 +374,48 @@ public class FaceunityWrapper {
             }
 
             @Override
-            public void onRedLevelSelected(int progress, int max) {
-                mFacebeautyRedLevel = 1.0f * progress / max;
+            public void onBlurLevelSelected(int level) {
+                mFaceBeautyBlurLevel = level;
+            }
+
+            @Override
+            public void onALLBlurLevelSelected(int isAll) {
+                mFaceBeautyALLBlurLevel = isAll;
+            }
+
+            @Override
+            public void onColorLevelSelected(int progress, int max) {
+                mFaceBeautyColorLevel = 1.0f * progress / max;
+            }
+
+            @Override
+            public void onCheekThinSelected(int progress, int max) {
+                mFaceBeautyCheekThin = 1.0f * progress / max;
+            }
+
+            @Override
+            public void onEnlargeEyeSelected(int progress, int max) {
+                mFaceBeautyEnlargeEye = 1.0f * progress / max;
+            }
+
+            @Override
+            public void onCameraChange() {
+
+            }
+
+            @Override
+            public void onStartRecording() {
+
+            }
+
+            @Override
+            public void onStopRecording() {
+
+            }
+
+            @Override
+            public void onFaceShapeSelected(int faceShape) {
+                mFaceShape = faceShape;
             }
 
             @Override
@@ -333,18 +424,23 @@ public class FaceunityWrapper {
             }
 
             @Override
-            public void onFaceShapeSelected(int faceShape) {
-                mFaceShape = faceShape;
+            public void onRedLevelSelected(int progress, int max) {
+                mFaceBeautyRedLevel = 1.0f * progress / max;
             }
         };
 
         return eventListener;
     }
 
+    private class EffectItem {
+        int item;
+        boolean paramReady;
+        boolean isAvatar;
+    }
+
     class CreateItemHandler extends Handler {
 
         static final int HANDLE_CREATE_ITEM = 1;
-
 
         CreateItemHandler(Looper looper) {
             super(looper);
@@ -356,17 +452,19 @@ public class FaceunityWrapper {
             switch (msg.what) {
                 case HANDLE_CREATE_ITEM:
                     try {
-                        final int tmp = itemsArray[1];
+                        final int tmp = mEffectItem.item;
                         if (mEffectFileName.equals("none")) {
-                            itemsArray[1] = mEffectItem = 0;
+                            mEffectItem = new EffectItem();
                         } else {
                             InputStream is = mContext.getAssets().open(mEffectFileName);
                             byte[] itemData = new byte[is.available()];
                             int len = is.read(itemData);
                             Log.e("FU", "effect len " + len);
                             is.close();
-                            itemsArray[1] = mEffectItem = faceunity.fuCreateItemFromPackage(itemData);
-                            isNeedUpdateEffectParam = true;
+                            EffectItem effectItem = new EffectItem();
+                            effectItem.item = faceunity.fuCreateItemFromPackage(itemData);
+                            effectItem.isAvatar = Arrays.asList(EffectAndFilterSelectAdapter.AVATAR_EFFECT).contains(mEffectFileName);
+                            mEffectItem = effectItem;
                         }
                         if (tmp != 0) {
                             faceunity.fuDestroyItem(tmp);

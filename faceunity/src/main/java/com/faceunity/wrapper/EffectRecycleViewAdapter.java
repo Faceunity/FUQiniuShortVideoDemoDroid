@@ -13,32 +13,33 @@ public class EffectRecycleViewAdapter extends RecyclerView.Adapter<EffectRecycle
     public static final String TAG = "EffectRecycleViewAdapter";
 
     /*first one must be null effect*/
-    public static final int[][] EFFECT_ITEM_RES_ARRAY = {
-            /*animoji*/
-            {R.drawable.ic_delete_all, R.drawable.xiongmao_icon},
-
-            /*3D*/
-            {R.drawable.ic_delete_all, R.drawable.sdx2, R.drawable.itd},
-
-            /*2D*/
-            {R.drawable.ic_delete_all,
-                    R.drawable.caituzi_zh_fu, R.drawable.lhudie_zh_fu},
-
-            /*face change*/
-            {R.drawable.ic_delete_all, R.drawable.afd, R.drawable.baozi},
-
-            /*avatar*/
-            {R.drawable.ic_delete_all, R.drawable.huli_icon},
-
-            /*magic*/
-            {R.drawable.ic_delete_all, R.drawable.hez_ztt_fu, R.drawable.xiandai_ztt_fu},
-
-            /*gesture*/
-            {R.drawable.ic_delete_all,R.drawable.fu_ztt_live520, R.drawable.fu_zh_baoquan},
-
-            /*filter*/
-            {R.drawable.ic_delete_all, R.drawable.gradient, R.drawable.moive},
-    };
+    public static final int[][] EFFECT_ITEM_RES_ARRAY = new int[0][];
+//    = {
+//            /*animoji*/
+//            {R.drawable.ic_delete_all, R.drawable.xiongmao_icon},
+//
+//            /*3D*/
+//            {R.drawable.ic_delete_all, R.drawable.sdx2, R.drawable.itd},
+//
+//            /*2D*/
+//            {R.drawable.ic_delete_all,
+//                    R.drawable.caituzi_zh_fu, R.drawable.lhudie_zh_fu},
+//
+//            /*face change*/
+//            {R.drawable.ic_delete_all, R.drawable.afd, R.drawable.baozi},
+//
+//            /*avatar*/
+//            {R.drawable.ic_delete_all, R.drawable.huli_icon},
+//
+//            /*magic*/
+//            {R.drawable.ic_delete_all, R.drawable.hez_ztt_fu, R.drawable.xiandai_ztt_fu},
+//
+//            /*gesture*/
+//            {R.drawable.ic_delete_all,R.drawable.fu_ztt_live520, R.drawable.fu_zh_baoquan},
+//
+//            /*filter*/
+//            {R.drawable.ic_delete_all, R.drawable.gradient, R.drawable.moive},
+//    };
 
     public static final int RECYCLEVIEW_TYPE_EFFECT = 0;
     public static final int RECYCLEVIEW_TYPE_FILTER = 1;
