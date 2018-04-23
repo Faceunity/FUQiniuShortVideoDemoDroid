@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
+import android.media.AudioFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,15 +23,15 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.faceunity.wrapper.FaceunityControlView;
-import com.faceunity.wrapper.FaceunityWrapper;
+import com.faceunity.beautycontrolview.BeautyControlView;
+import com.faceunity.beautycontrolview.FURenderer;
+import com.faceunity.wrapper.faceunity;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
 import com.qiniu.pili.droid.shortvideo.PLCaptureFrameListener;
 import com.qiniu.pili.droid.shortvideo.PLDraft;
 import com.qiniu.pili.droid.shortvideo.PLDraftBox;
-import com.qiniu.pili.droid.shortvideo.PLErrorCode;
 import com.qiniu.pili.droid.shortvideo.PLFaceBeautySetting;
 import com.qiniu.pili.droid.shortvideo.PLFocusListener;
 import com.qiniu.pili.droid.shortvideo.PLMicrophoneSetting;
@@ -53,6 +54,7 @@ import com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Stack;
 
 import static com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings.RECORD_SPEED_ARRAY;
 
@@ -64,6 +66,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     public static final String ENCODING_MODE = "EncodingMode";
     public static final String ENCODING_SIZE_LEVEL = "EncodingSizeLevel";
     public static final String ENCODING_BITRATE_LEVEL = "EncodingBitrateLevel";
+    public static final String AUDIO_CHANNEL_NUM = "AudioChannelNum";
     public static final String DRAFT = "draft";
 
     private PLShortVideoRecorder mShortVideoRecorder;
@@ -79,10 +82,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private FocusIndicator mFocusIndicator;
     private SeekBar mAdjustBrightnessSeekBar;
 
-    private ImageView mFaceStatusView;
-
     private boolean mFlashEnabled;
-    private String mRecordErrorMsg;
     private boolean mIsEditVideo = false;
 
     private GestureDetector mGestureDetector;
@@ -92,15 +92,19 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private PLRecordSetting mRecordSetting;
     private PLVideoEncodeSetting mVideoEncodeSetting;
     private PLAudioEncodeSetting mAudioEncodeSetting;
+    private PLFaceBeautySetting mFaceBeautySetting;
 
-    private FaceunityWrapper mFaceunityWrapper;
-    private FaceunityControlView mControlView;
+    private FURenderer mFURenderer;
+
+    private BeautyControlView mFaceunityControlView;
 
     private int mFocusIndicatorX;
     private int mFocusIndicatorY;
 
     private double mRecordSpeed;
     private TextView mSpeedTextView;
+
+    private Stack<Long> mDurationRecordStack = new Stack();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,8 +124,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         mFocusIndicator = (FocusIndicator) findViewById(R.id.focus_indicator);
         mAdjustBrightnessSeekBar = (SeekBar) findViewById(R.id.adjust_brightness);
 
-        mFaceStatusView = (ImageView) findViewById(R.id.iv_face_detect);
-
         mProcessingDialog = new CustomProgressDialog(this);
         mProcessingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
             @Override
@@ -139,32 +141,38 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
         String draftTag = getIntent().getStringExtra(DRAFT);
         if (draftTag == null) {
-            int previewSizeRatio = getIntent().getIntExtra(PREVIEW_SIZE_RATIO, 0);
-            int previewSizeLevel = getIntent().getIntExtra(PREVIEW_SIZE_LEVEL, 0);
-            int encodingMode = getIntent().getIntExtra(ENCODING_MODE, 0);
-            int encodingSizeLevel = getIntent().getIntExtra(ENCODING_SIZE_LEVEL, 0);
-            int encodingBitrateLevel = getIntent().getIntExtra(ENCODING_BITRATE_LEVEL, 0);
+            int previewSizeRatioPos = getIntent().getIntExtra(PREVIEW_SIZE_RATIO, 0);
+            int previewSizeLevelPos = getIntent().getIntExtra(PREVIEW_SIZE_LEVEL, 0);
+            int encodingModePos = getIntent().getIntExtra(ENCODING_MODE, 0);
+            int encodingSizeLevelPos = getIntent().getIntExtra(ENCODING_SIZE_LEVEL, 0);
+            int encodingBitrateLevelPos = getIntent().getIntExtra(ENCODING_BITRATE_LEVEL, 0);
+            int audioChannelNumPos = getIntent().getIntExtra(AUDIO_CHANNEL_NUM, 0);
 
             mCameraSetting = new PLCameraSetting();
             PLCameraSetting.CAMERA_FACING_ID facingId = chooseCameraFacingId();
             mCameraSetting.setCameraId(facingId);
-            mCameraSetting.setCameraPreviewSizeRatio(getPreviewSizeRatio(previewSizeRatio));
-            mCameraSetting.setCameraPreviewSizeLevel(getPreviewSizeLevel(previewSizeLevel));
+            mCameraSetting.setCameraPreviewSizeRatio(RecordSettings.PREVIEW_SIZE_RATIO_ARRAY[previewSizeRatioPos]);
+            mCameraSetting.setCameraPreviewSizeLevel(RecordSettings.PREVIEW_SIZE_LEVEL_ARRAY[previewSizeLevelPos]);
 
             mMicrophoneSetting = new PLMicrophoneSetting();
+            mMicrophoneSetting.setChannelConfig(RecordSettings.AUDIO_CHANNEL_NUM_ARRAY[audioChannelNumPos] == 1 ?
+                    AudioFormat.CHANNEL_IN_MONO : AudioFormat.CHANNEL_IN_STEREO);
 
             mVideoEncodeSetting = new PLVideoEncodeSetting(this);
-            mVideoEncodeSetting.setEncodingSizeLevel(getEncodingSizeLevel(encodingSizeLevel));
-            mVideoEncodeSetting.setEncodingBitrate(getEncodingBitrateLevel(encodingBitrateLevel));
-            mVideoEncodeSetting.setHWCodecEnabled(encodingMode == 0);
+            mVideoEncodeSetting.setEncodingSizeLevel(RecordSettings.ENCODING_SIZE_LEVEL_ARRAY[encodingSizeLevelPos]);
+            mVideoEncodeSetting.setEncodingBitrate(RecordSettings.ENCODING_BITRATE_LEVEL_ARRAY[encodingBitrateLevelPos]);
+            mVideoEncodeSetting.setHWCodecEnabled(encodingModePos == 0);
 
             mAudioEncodeSetting = new PLAudioEncodeSetting();
-            mAudioEncodeSetting.setHWCodecEnabled(encodingMode == 0);
+            mAudioEncodeSetting.setHWCodecEnabled(encodingModePos == 0);
+            mAudioEncodeSetting.setChannels(RecordSettings.AUDIO_CHANNEL_NUM_ARRAY[audioChannelNumPos]);
 
             mRecordSetting = new PLRecordSetting();
             mRecordSetting.setMaxRecordDuration((long) (RecordSettings.DEFAULT_MAX_RECORD_DURATION * mRecordSpeed));
             mRecordSetting.setVideoCacheDir(Config.VIDEO_STORAGE_DIR);
             mRecordSetting.setVideoFilepath(Config.RECORD_FILE_PATH);
+
+            mFaceBeautySetting = new PLFaceBeautySetting(1.0f, 0.5f, 0.5f);
 
             mShortVideoRecorder.prepare(preview, mCameraSetting, mMicrophoneSetting, mVideoEncodeSetting,
                     mAudioEncodeSetting, null, mRecordSetting);
@@ -182,13 +190,14 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             mVideoEncodeSetting = draft.getVideoEncodeSetting();
             mAudioEncodeSetting = draft.getAudioEncodeSetting();
             mRecordSetting = draft.getRecordSetting();
+            mFaceBeautySetting = draft.getFaceBeautySetting();
 
             if (mShortVideoRecorder.recoverFromDraft(preview, draft)) {
                 long draftDuration = 0;
                 for (int i = 0; i < draft.getSectionCount(); ++i) {
                     long currentDuration = draft.getSectionDuration(i);
                     draftDuration += draft.getSectionDuration(i);
-                    onSectionIncreased(currentDuration, draftDuration, i+1);
+                    onSectionIncreased(currentDuration, draftDuration, i + 1);
                 }
                 mSectionProgressBar.setFirstPointTime(draftDuration);
                 ToastUtils.s(this, getString(R.string.toast_draft_recover_success));
@@ -201,74 +210,65 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         mShortVideoRecorder.setRecordSpeed(mRecordSpeed);
         mSectionProgressBar.setTotalTime(this, mRecordSetting.getMaxRecordDuration());
 
-        mFaceunityWrapper = new FaceunityWrapper(this, mCameraSetting.getCameraId() == PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK);
+        mFURenderer = new FURenderer.Builder(this).build();
 
-        findViewById(R.id.btn_camera_effect).setVisibility(View.VISIBLE);
-
-        mControlView = (FaceunityControlView) findViewById(R.id.faceunity_control_layout);
-        mControlView.setOnViewEventListener(mFaceunityWrapper.initUIEventListener());
+        mFaceunityControlView = (BeautyControlView) findViewById(R.id.faceunity_control);
+        mFaceunityControlView.setOnFaceUnityControlListener(mFURenderer);
 
         mShortVideoRecorder.setVideoFilterListener(new PLVideoFilterListener() {
-            private int surfaceWidth;
-            private int surfaceHeight;
-            private boolean isTrackerOnSurfaceChangedCalled;
-
-            private int faceTrackingStatus;
 
             @Override
             public void onSurfaceCreated() {
-                mFaceunityWrapper.onSurfaceCreated(VideoRecordActivity.this);
+                mFURenderer.loadItems();
             }
 
             @Override
             public void onSurfaceChanged(int width, int height) {
-                surfaceWidth = width;
-                surfaceHeight = height;
             }
 
             @Override
             public void onSurfaceDestroy() {
-                mFaceunityWrapper.onSurfaceDestroyed();
+                mFURenderer.destroyItems();
             }
 
             @Override
             public int onDrawFrame(int texId, int texWidth, int texHeight, long timeStampNs, float[] transformMatrix) {
-                if (!isTrackerOnSurfaceChangedCalled) {
-                    isTrackerOnSurfaceChangedCalled = true;
-                }
-                if (faceTrackingStatus != mFaceunityWrapper.getFaceTrackingStatus()) {
-                    faceTrackingStatus = mFaceunityWrapper.getFaceTrackingStatus();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mFaceStatusView.setVisibility(faceTrackingStatus == 0 ? View.VISIBLE : View.GONE);
-                        }
-                    });
-                }
-                return mFaceunityWrapper.onDrawFrame(texId, texWidth, texHeight, transformMatrix);
+                return mFURenderer.onDrawFrame(texId, texWidth, texHeight, transformMatrix);
             }
         });
 
         mShortVideoRecorder.setCameraPreviewListener(new PLCameraPreviewListener() {
             @Override
-            public boolean onPreviewFrame(byte[] bytes, int i, int i1, int i2, int i3, long l) {
-                return mFaceunityWrapper.onPreviewFrame(bytes, i, i1, i2, i3, l);
+            public boolean onPreviewFrame(byte[] data, int width, int height, int rotation, int fmt, long tsInNanoTime) {
+                return mFURenderer.onPreviewFrame(data, width, height, rotation, fmt, tsInNanoTime);
             }
         });
 
         mRecordBtn.setOnTouchListener(new View.OnTouchListener() {
+            private long mSectionBeginTSMs;
+            private boolean mSectionBegan;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 int action = event.getAction();
                 if (action == MotionEvent.ACTION_DOWN) {
-                    if (mShortVideoRecorder.beginSection()) {
+                    if (!mSectionBegan && mShortVideoRecorder.beginSection()) {
+                        mSectionBegan = true;
+                        mSectionBeginTSMs = System.currentTimeMillis();
+                        mSectionProgressBar.setCurrentState(SectionProgressBar.State.START);
                         updateRecordingBtns(true);
                     } else {
                         ToastUtils.s(VideoRecordActivity.this, "无法开始视频段录制");
                     }
                 } else if (action == MotionEvent.ACTION_UP) {
-                    mShortVideoRecorder.endSection();
-                    updateRecordingBtns(false);
+                    if (mSectionBegan) {
+                        long totalDurationMs = (System.currentTimeMillis() - mSectionBeginTSMs) + (mDurationRecordStack.isEmpty() ? 0 : mDurationRecordStack.peek());
+                        mDurationRecordStack.push(totalDurationMs);
+                        mSectionProgressBar.addBreakPointTime(totalDurationMs);
+                        mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);
+                        mShortVideoRecorder.endSection();
+                        mSectionBegan = false;
+                    }
                 }
 
                 return false;
@@ -342,6 +342,8 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         super.onResume();
         mRecordBtn.setEnabled(false);
         mShortVideoRecorder.resume();
+
+        mFaceunityControlView.onResume();
     }
 
     @Override
@@ -349,6 +351,8 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         super.onPause();
         updateRecordingBtns(false);
         mShortVideoRecorder.pause();
+
+        mFaceunityControlView.onPause();
     }
 
     @Override
@@ -376,9 +380,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     public void onClickSwitchCamera(View v) {
         mShortVideoRecorder.switchCamera();
         mFocusIndicator.focusCancel();
-        if (mFaceunityWrapper != null) {
-            mFaceunityWrapper.setCameraId(mCameraSetting.getCameraId() == PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK);
-        }
     }
 
     public void onClickSwitchFlash(View v) {
@@ -443,19 +444,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     }
 
     @Override
-    public void onError(int code) {
-        if (code == PLErrorCode.ERROR_SETUP_CAMERA_FAILED) {
-            mRecordErrorMsg = "摄像头配置错误";
-        } else if (code == PLErrorCode.ERROR_SETUP_MICROPHONE_FAILED) {
-            mRecordErrorMsg = "麦克风配置错误";
-        } else {
-            mRecordErrorMsg = "错误码 : " + code;
-        }
-
+    public void onError(final int code) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                ToastUtils.s(VideoRecordActivity.this, mRecordErrorMsg);
+                ToastUtils.toastErrorCode(VideoRecordActivity.this, code);
             }
         });
     }
@@ -473,20 +466,23 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     @Override
     public void onRecordStarted() {
         Log.i(TAG, "record start time: " + System.currentTimeMillis());
-        mSectionProgressBar.setCurrentState(SectionProgressBar.State.START);
     }
 
     @Override
     public void onRecordStopped() {
         Log.i(TAG, "record stop time: " + System.currentTimeMillis());
-        mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                updateRecordingBtns(false);
+            }
+        });
     }
 
     @Override
     public void onSectionIncreased(long incDuration, long totalDuration, int sectionCount) {
         Log.i(TAG, "section increased incDuration: " + incDuration + " totalDuration: " + totalDuration + " sectionCount: " + sectionCount);
         onSectionCountChanged(sectionCount, totalDuration);
-        mSectionProgressBar.addBreakPointTime(totalDuration);
     }
 
     @Override
@@ -494,6 +490,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         Log.i(TAG, "section decreased decDuration: " + decDuration + " totalDuration: " + totalDuration + " sectionCount: " + sectionCount);
         onSectionCountChanged(sectionCount, totalDuration);
         mSectionProgressBar.removeLastBreakPoint();
+        mDurationRecordStack.pop();
     }
 
     @Override
@@ -587,22 +584,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                 mConcatBtn.setEnabled(totalTime >= (RecordSettings.DEFAULT_MIN_RECORD_DURATION * mRecordSpeed));
             }
         });
-    }
-
-    private PLCameraSetting.CAMERA_PREVIEW_SIZE_RATIO getPreviewSizeRatio(int position) {
-        return RecordSettings.PREVIEW_SIZE_RATIO_ARRAY[position];
-    }
-
-    private PLCameraSetting.CAMERA_PREVIEW_SIZE_LEVEL getPreviewSizeLevel(int position) {
-        return RecordSettings.PREVIEW_SIZE_LEVEL_ARRAY[position];
-    }
-
-    private PLVideoEncodeSetting.VIDEO_ENCODING_SIZE_LEVEL getEncodingSizeLevel(int position) {
-        return RecordSettings.ENCODING_SIZE_LEVEL_ARRAY[position];
-    }
-
-    private int getEncodingBitrateLevel(int position) {
-        return RecordSettings.ENCODING_BITRATE_LEVEL_ARRAY[position];
     }
 
     private PLCameraSetting.CAMERA_FACING_ID chooseCameraFacingId() {

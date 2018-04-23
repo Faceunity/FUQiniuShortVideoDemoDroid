@@ -11,7 +11,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.faceunity.wrapper.faceunity;
 import com.qiniu.pili.droid.shortvideo.demo.BuildConfig;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 import com.qiniu.pili.droid.shortvideo.demo.utils.PermissionChecker;
@@ -29,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private Spinner mEncodingModeLevelSpinner;
     private Spinner mEncodingSizeLevelSpinner;
     private Spinner mEncodingBitrateLevelSpinner;
+    private Spinner mAudioChannelNumSpinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         TextView versionInfoTextView = (TextView) findViewById(R.id.VersionInfoTextView);
-        String info = "七牛版本号：" + getVersionDescription() + "，FU版本号：" + faceunity.fuGetVersion();
+        String info = "版本号：" + getVersionDescription() + "，编译时间：" + getBuildTimeDescription();
         versionInfoTextView.setText(info);
 
         mPreviewSizeRatioSpinner = (Spinner) findViewById(R.id.PreviewSizeRatioSpinner);
@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         mEncodingModeLevelSpinner = (Spinner) findViewById(R.id.EncodingModeLevelSpinner);
         mEncodingSizeLevelSpinner = (Spinner) findViewById(R.id.EncodingSizeLevelSpinner);
         mEncodingBitrateLevelSpinner = (Spinner) findViewById(R.id.EncodingBitrateLevelSpinner);
+        mAudioChannelNumSpinner = (Spinner) findViewById(R.id.AudioChannelNumSpinner);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.PREVIEW_SIZE_RATIO_TIPS_ARRAY);
         mPreviewSizeRatioSpinner.setAdapter(adapter);
@@ -52,17 +53,21 @@ public class MainActivity extends AppCompatActivity {
         mPreviewSizeLevelSpinner.setAdapter(adapter);
         mPreviewSizeLevelSpinner.setSelection(3);
 
-        adapter= new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_MODE_LEVEL_TIPS_ARRAY);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_MODE_LEVEL_TIPS_ARRAY);
         mEncodingModeLevelSpinner.setAdapter(adapter);
         mEncodingModeLevelSpinner.setSelection(0);
 
-        adapter= new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_SIZE_LEVEL_TIPS_ARRAY);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_SIZE_LEVEL_TIPS_ARRAY);
         mEncodingSizeLevelSpinner.setAdapter(adapter);
         mEncodingSizeLevelSpinner.setSelection(7);
 
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.ENCODING_BITRATE_LEVEL_TIPS_ARRAY);
         mEncodingBitrateLevelSpinner.setAdapter(adapter);
         mEncodingBitrateLevelSpinner.setSelection(2);
+
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, RecordSettings.AUDIO_CHANNEL_NUM_TIPS_ARRAY);
+        mAudioChannelNumSpinner.setAdapter(adapter);
+        mAudioChannelNumSpinner.setSelection(0);
     }
 
     private boolean isPermissionOK() {
@@ -103,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
             jumpToActivity(MakeGIFActivity.class);
         }
     }
-  
+
     public void onClickScreenRecord(View v) {
         if (isPermissionOK()) {
             jumpToActivity(ScreenRecordActivity.class);
@@ -116,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onClickImageCompose(View v){
+    public void onClickImageCompose(View v) {
         if (isPermissionOK()) {
             jumpToActivity(ImageComposeActivity.class);
         }
@@ -125,6 +130,12 @@ public class MainActivity extends AppCompatActivity {
     public void onClickAR(View v) {
         if (isPermissionOK()) {
             jumpToActivity(ArRecordActivity.class);
+        }
+    }
+
+    public void onClickTransitionMake(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(VideoDivideActivity.class);
         }
     }
 
@@ -146,12 +157,14 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(VideoRecordActivity.ENCODING_MODE, mEncodingModeLevelSpinner.getSelectedItemPosition());
         intent.putExtra(VideoRecordActivity.ENCODING_SIZE_LEVEL, mEncodingSizeLevelSpinner.getSelectedItemPosition());
         intent.putExtra(VideoRecordActivity.ENCODING_BITRATE_LEVEL, mEncodingBitrateLevelSpinner.getSelectedItemPosition());
+        intent.putExtra(VideoRecordActivity.AUDIO_CHANNEL_NUM, mAudioChannelNumSpinner.getSelectedItemPosition());
         startActivity(intent);
     }
 
     public void jumpToAudioCaptureActivity() {
         Intent intent = new Intent(MainActivity.this, AudioRecordActivity.class);
         intent.putExtra(AudioRecordActivity.ENCODING_MODE, mEncodingModeLevelSpinner.getSelectedItemPosition());
+        intent.putExtra(AudioRecordActivity.AUDIO_CHANNEL_NUM, mAudioChannelNumSpinner.getSelectedItemPosition());
         startActivity(intent);
     }
 

@@ -17,18 +17,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 
-        <com.faceunity.wrapper.FaceunityControlView
-            android:id="@+id/faceunity_control_layout"
+        <com.faceunity.beautycontrolview.BeautyControlView
+            android:id="@+id/faceunity_control"
+            android:layout_gravity="bottom"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"/>
-
-        <ImageView
-            android:id="@+id/iv_face_detect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:src="@mipmap/ic_detect_tip"/>
+            android:layout_height="wrap_content" />
     </FrameLayout>
 
     <LinearLayout
@@ -41,6 +34,7 @@
         android:padding="15dp">
 
         <ImageView
+            android:id="@+id/adjust_brightness_button"
             android:layout_width="25dp"
             android:layout_height="25dp"
             android:layout_marginLeft="10dp"
@@ -74,6 +68,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
             android:gravity="center"
             android:onClick="onSpeedClicked"
             android:padding="7dp"
@@ -86,6 +81,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
             android:gravity="center"
             android:onClick="onSpeedClicked"
             android:padding="7dp"
@@ -99,6 +95,7 @@
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"
+            android:clickable="true"
             android:gravity="center"
             android:onClick="onSpeedClicked"
             android:padding="7dp"
@@ -111,6 +108,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
             android:gravity="center"
             android:onClick="onSpeedClicked"
             android:padding="7dp"
@@ -123,6 +121,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:clickable="true"
             android:gravity="center"
             android:onClick="onSpeedClicked"
             android:padding="7dp"
@@ -149,6 +148,7 @@
         android:layout_margin="15dp">
 
         <ImageView
+            android:id="@+id/screen_rotate_button"
             android:layout_width="25dp"
             android:layout_height="25dp"
             android:layout_marginLeft="10dp"
@@ -158,6 +158,7 @@
             android:src="@mipmap/btn_screen_rotation" />
 
         <ImageView
+            android:id="@+id/capture_frame_button"
             android:layout_width="25dp"
             android:layout_height="25dp"
             android:layout_marginLeft="10dp"
@@ -249,18 +250,20 @@
                 android:visibility="gone" />
 
             <ImageView
+                android:id="@+id/audio_mix_button"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_weight="1"
-                android:src="@mipmap/btn_mix_audio"
-                android:onClick="onClickAddMixAudio" />
+                android:onClick="onClickAddMixAudio"
+                android:src="@mipmap/btn_mix_audio" />
 
             <ImageView
-                android:onClick="onClickSaveToDraft"
-                android:src="@drawable/ic_draft"
-                android:layout_weight="1"
+                android:id="@+id/save_to_draft_button"
                 android:layout_width="30dp"
-                android:layout_height="30dp" />
+                android:layout_height="30dp"
+                android:layout_weight="1"
+                android:onClick="onClickSaveToDraft"
+                android:src="@drawable/ic_draft" />
 
         </LinearLayout>
 

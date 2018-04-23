@@ -6,8 +6,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import com.faceunity.wrapper.FaceunityControlView;
-import com.faceunity.wrapper.FaceunityWrapper;import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
@@ -29,10 +28,6 @@ import com.qiniu.pili.droid.shortvideo.demo.utils.ToastUtils;
 import com.qiniu.pili.droid.shortvideo.demo.view.CustomProgressDialog;
 
 import java.io.File;
-
-import static com.qiniu.pili.droid.shortvideo.PLErrorCode.ERROR_LOW_MEMORY;
-import static com.qiniu.pili.droid.shortvideo.PLErrorCode.ERROR_NO_VIDEO_TRACK;
-import static com.qiniu.pili.droid.shortvideo.PLErrorCode.ERROR_SRC_DST_SAME_FILE_PATH;
 
 public class VideoTranscodeActivity extends AppCompatActivity {
     private static final String TAG = "VideoTranscodeActivity";
@@ -163,64 +158,61 @@ public class VideoTranscodeActivity extends AppCompatActivity {
         int transcodingWidth = Integer.parseInt(mTranscodingWidthEditText.getText().toString());
         int transcodingHeight = Integer.parseInt(mTranscodingHeightEditText.getText().toString());
 
-        mProcessingDialog.show();
-
-        mShortVideoTranscoder.transcode(
+        boolean startResult = mShortVideoTranscoder.transcode(
                 transcodingWidth, transcodingHeight,
                 RecordSettings.ENCODING_BITRATE_LEVEL_ARRAY[transcodingBitrateLevel],
                 RecordSettings.ROTATION_LEVEL_ARRAY[transcodingRotationLevel],
                 isReverse, new PLVideoSaveListener() {
-            @Override
-            public void onSaveVideoSuccess(final String s) {
-                Log.i(TAG, "save success: " + s);
-                runOnUiThread(new Runnable() {
                     @Override
-                    public void run() {
-                        mProcessingDialog.dismiss();
-                        showChooseDialog(s);
+                    public void onSaveVideoSuccess(final String s) {
+                        Log.i(TAG, "save success: " + s);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mProcessingDialog.dismiss();
+                                showChooseDialog(s);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onSaveVideoFailed(final int errorCode) {
+                        Log.i(TAG, "save failed: " + errorCode);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mProcessingDialog.dismiss();
+                                ToastUtils.toastErrorCode(VideoTranscodeActivity.this, errorCode);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onSaveVideoCanceled() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mProcessingDialog.dismiss();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onProgressUpdate(final float percentage) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mProcessingDialog.setProgress((int) (100 * percentage));
+                            }
+                        });
                     }
                 });
-            }
 
-            @Override
-            public void onSaveVideoFailed(final int errorCode) {
-                Log.i(TAG, "save failed: " + errorCode);
-                mProcessingDialog.dismiss();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        switch (errorCode) {
-                            case ERROR_NO_VIDEO_TRACK:
-                                ToastUtils.s(VideoTranscodeActivity.this, "该文件没有视频信息！");
-                                break;
-                            case ERROR_SRC_DST_SAME_FILE_PATH:
-                                ToastUtils.s(VideoTranscodeActivity.this, "源文件路径和目标路径不能相同！");
-                                break;
-                            case ERROR_LOW_MEMORY:
-                                ToastUtils.s(VideoTranscodeActivity.this, "手机内存不足，无法对该视频进行时光倒流！");
-                                break;
-                            default:
-                                ToastUtils.s(VideoTranscodeActivity.this, "transcode failed: " + errorCode);
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public void onSaveVideoCanceled() {
-                mProcessingDialog.dismiss();
-            }
-
-            @Override
-            public void onProgressUpdate(final float percentage) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mProcessingDialog.setProgress((int) (100 * percentage));
-                    }
-                });
-            }
-        });
+        if (startResult) {
+            mProcessingDialog.show();
+        } else {
+            ToastUtils.s(this, "开始转码失败！");
+        }
     }
 
     private void showChooseDialog(final String filePath) {
