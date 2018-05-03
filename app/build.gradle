@@ -45,7 +45,7 @@ dependencies {
     compile 'com.android.support:design:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.1'
 
-    compile project(':beautycontrolview')
+    compile project(':faceunity')
     compile files('libs/TuSDKCore-2.9.0.jar')
     compile files('libs/TuSDKFace-1.0.0.jar')
     compile files('libs/TuSDKVideo-1.11.0.jar')
