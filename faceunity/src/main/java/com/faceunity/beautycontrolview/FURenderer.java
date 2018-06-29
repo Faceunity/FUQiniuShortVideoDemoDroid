@@ -15,6 +15,7 @@ import com.faceunity.beautycontrolview.entity.Effect;
 import com.faceunity.beautycontrolview.entity.Filter;
 import com.faceunity.beautycontrolview.gles.FullFrameRect;
 import com.faceunity.beautycontrolview.gles.Texture2dProgram;
+import com.faceunity.wrapper.authpack;
 import com.faceunity.wrapper.faceunity;
 
 import java.io.IOException;
@@ -201,7 +202,7 @@ public class FURenderer implements OnFaceUnityControlListener {
          *          在该段时间内，需要用户尽量保持无表情状态，该过程结束后再开始使用。该过程的开始和结束可以通过 fuGetFaceInfo 接口获取参数 is_calibrating
          * 适用于使用Animoji和avatar功能的用户
          */
-        faceunity.fuSetExpressionCalibration(1);
+        faceunity.fuSetExpressionCalibration(2);
         faceunity.fuSetDefaultOrientation((360 - mInputImageOrientation) / 90);//设置多脸，识别人脸默认方向，能够提高首次识别的速度
         faceunity.fuSetMaxFaces(mMaxFaces);//设置多脸，目前最多支持8人。
 
