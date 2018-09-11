@@ -1,14 +1,8 @@
 apply plugin: 'com.android.application'
 
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
-
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    buildToolsVersion "25.0.3"
 
     defaultConfig {
         applicationId "com.qiniu.pili.droid.shortvideo.demo"
@@ -31,24 +25,14 @@ android {
 }
 
 dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile project(':faceunity')
     compile 'com.qiniu:qiniu-android-sdk:7.3.10'
-    compile files('libs/pldroid-shortvideo-1.10.0.jar')
-    compile files('libs/pldroid-player-2.0.5.jar')
-    compile files('libs/EasyAR.jar')
-    compile files('libs/EasyAR3D.jar')
-
     compile 'com.android.support:multidex:1.0.1'
-
     compile 'pl.droidsonroids.gif:android-gif-drawable:1.2.7'
     compile 'com.android.support:recyclerview-v7:25.3.1'
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support:design:25.3.1'
-    compile 'com.android.support.constraint:constraint-layout:1.0.1'
-
-    compile project(':faceunity')
-    compile files('libs/TuSDKCore-2.9.0.jar')
-    compile files('libs/TuSDKFace-1.0.0.jar')
-    compile files('libs/TuSDKVideo-1.11.0.jar')
-    compile files('libs/universal-image-loader-1.9.4.jar')
+    compile 'com.android.support.constraint:constraint-layout:1.1.2'
     compile 'com.h6ah4i.android.widget.advrecyclerview:advrecyclerview:0.10.6'
 }

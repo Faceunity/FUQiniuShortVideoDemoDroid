@@ -15,7 +15,6 @@ import com.faceunity.beautycontrolview.entity.Effect;
 import com.faceunity.beautycontrolview.entity.Filter;
 import com.faceunity.beautycontrolview.gles.FullFrameRect;
 import com.faceunity.beautycontrolview.gles.Texture2dProgram;
-import com.faceunity.wrapper.authpack;
 import com.faceunity.wrapper.faceunity;
 
 import java.io.IOException;
