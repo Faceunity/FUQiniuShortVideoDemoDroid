@@ -175,6 +175,21 @@ public class SectionProgressBar extends View {
         mBreakPointInfoList.add(info);
     }
 
+    public LinkedList<BreakPointInfo> getBreakPointInfoList() {
+        return mBreakPointInfoList;
+    }
+
+    /**
+     * Add break point time.
+     *
+     * @param
+     */
+    public synchronized void addBreakPointTime(BreakPointInfo point) {
+        point.setColor(mProgressBarPaint.getColor());
+        mBreakPointInfoList.add(point);
+    }
+
+
     /**
      * Remove last break point.
      */
@@ -243,9 +258,13 @@ public class SectionProgressBar extends View {
         invalidate();
     }
 
-    private class BreakPointInfo {
+    public static class BreakPointInfo {
         private long mTime;
         private int mColor;
+        private long mStartTime;
+
+        public BreakPointInfo() {
+        }
 
         public BreakPointInfo(long time, int color) {
             mTime = time;
@@ -260,12 +279,20 @@ public class SectionProgressBar extends View {
             this.mColor = mColor;
         }
 
+        public int getColor() {
+            return mColor;
+        }
+
         public long getTime() {
             return mTime;
         }
 
-        public int getColor() {
-            return mColor;
+        public long getStartTime() {
+            return mStartTime;
+        }
+
+        public void setStartTime(long startTime) {
+            this.mStartTime = startTime;
         }
     }
 }

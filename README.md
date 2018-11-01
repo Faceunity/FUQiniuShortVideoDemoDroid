@@ -70,3 +70,6 @@ private float mThinNoseLevel = 0.5f;//瘦鼻
 private float mMouthShape = 0.4f;//嘴形
 ```
 参数含义与取值范围参考[这里](http://www.faceunity.com/technical/android-beauty.html)，如果使用界面，则需要同时修改界面中的初始值。
+
+------
+**七牛短视频 SDK：** https://developer.qiniu.com/pili/sdk/3734/android-short-video-sdk

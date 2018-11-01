@@ -5,7 +5,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
-import android.hardware.Camera;
 import android.media.AudioFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
@@ -19,13 +18,11 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.faceunity.beautycontrolview.BeautyControlView;
 import com.faceunity.beautycontrolview.FURenderer;
-import com.faceunity.wrapper.faceunity;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
@@ -70,7 +67,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     public static final String DRAFT = "draft";
 
     private PLShortVideoRecorder mShortVideoRecorder;
-    private GLSurfaceView preview;
 
     private SectionProgressBar mSectionProgressBar;
     private CustomProgressDialog mProcessingDialog;
@@ -115,7 +111,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         setContentView(R.layout.activity_record);
 
         mSectionProgressBar = (SectionProgressBar) findViewById(R.id.record_progressbar);
-        preview = (GLSurfaceView) findViewById(R.id.preview);
+        GLSurfaceView preview = (GLSurfaceView) findViewById(R.id.preview);
         mRecordBtn = findViewById(R.id.record);
         mDeleteBtn = findViewById(R.id.delete);
         mConcatBtn = findViewById(R.id.concat);
@@ -537,7 +533,8 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             public void run() {
                 mProcessingDialog.dismiss();
                 if (mIsEditVideo) {
-                    VideoEditActivity.start(VideoRecordActivity.this, filePath);
+//                    VideoEditActivity.start(VideoRecordActivity.this, filePath);
+                    VideoFuEditActivity.start(VideoRecordActivity.this, filePath);
                 } else {
                     PlaybackActivity.start(VideoRecordActivity.this, filePath);
                 }

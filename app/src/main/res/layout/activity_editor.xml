@@ -39,8 +39,7 @@
     <com.qiniu.pili.droid.shortvideo.demo.view.SquareRelativeLayout
         android:id="@+id/preview_wrapper"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/title_layout">
+        android:layout_height="wrap_content">
 
         <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
             android:id="@+id/preview"
@@ -158,17 +157,24 @@
         android:id="@+id/paint_selector_panel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"></com.qiniu.pili.droid.shortvideo.demo.view.PaintSelectorPanel>
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/editing_panel"
         android:layout_width="match_parent"
+        android:visibility="visible"
         android:layout_height="match_parent"
         android:orientation="vertical">
+
+        <com.faceunity.beautycontrolview.BeautyControlView
+            android:id="@+id/faceunity_control"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="invisible"
             android:layout_marginLeft="10dp"
             android:layout_marginTop="10dp"
             android:orientation="horizontal">
@@ -276,7 +282,7 @@
             android:layout_marginTop="10dp"
             android:layout_weight="1"
             android:background="@android:color/background_dark"
-            android:visibility="gone"></com.qiniu.pili.droid.shortvideo.demo.view.ImageSelectorPanel>
+            android:visibility="gone" />
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycler_view"

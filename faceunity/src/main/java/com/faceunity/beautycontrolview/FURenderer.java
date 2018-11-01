@@ -84,8 +84,6 @@ public class FURenderer implements OnFaceUnityControlListener {
     private static final int ITEM_ARRAYS_COUNT = 3;
     //美颜和其他道具的handle数组
     private final int[] mItemsArray = new int[ITEM_ARRAYS_COUNT];
-    //用于和异步加载道具的线程交互
-    private HandlerThread mFuItemHandlerThread;
     private Handler mFuItemHandler;
 
     private boolean isNeedFaceBeauty = true;
@@ -175,9 +173,9 @@ public class FURenderer implements OnFaceUnityControlListener {
         this.mContext = context;
         this.mIsCreateEGLContext = isCreateEGLContext;
 
-        mFuItemHandlerThread = new HandlerThread("FUItemHandlerThread");
-        mFuItemHandlerThread.start();
-        mFuItemHandler = new FUItemHandler(mFuItemHandlerThread.getLooper());
+        HandlerThread fuItemHandlerThread = new HandlerThread("FUItemHandlerThread");
+        fuItemHandlerThread.start();
+        mFuItemHandler = new FUItemHandler(fuItemHandlerThread.getLooper());
     }
 
     /**
@@ -191,7 +189,8 @@ public class FURenderer implements OnFaceUnityControlListener {
          * 适用于没OpenGL环境时调用
          * 如果调用了fuCreateEGLContext，在销毁时需要调用fuReleaseEGLContext
          */
-        if (mIsCreateEGLContext) faceunity.fuCreateEGLContext();
+        if (mIsCreateEGLContext)
+            faceunity.fuCreateEGLContext();
 
         mFrameId = 0;
         /**
@@ -239,9 +238,11 @@ public class FURenderer implements OnFaceUnityControlListener {
         if (mCurrentCameraType != Camera.CameraInfo.CAMERA_FACING_FRONT)
             flags |= FU_ADM_FLAG_FLIP_X;
 
-        if (mNeedBenchmark) mFuCallStartTime = System.nanoTime();
+        if (mNeedBenchmark)
+            mFuCallStartTime = System.nanoTime();
         int fuTex = faceunity.fuRenderToNV21Image(img, w, h, mFrameId++, mItemsArray, flags);
-        if (mNeedBenchmark) mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
+        if (mNeedBenchmark)
+            mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
         return fuTex;
     }
 
@@ -267,10 +268,12 @@ public class FURenderer implements OnFaceUnityControlListener {
         if (mCurrentCameraType != Camera.CameraInfo.CAMERA_FACING_FRONT)
             flags |= FU_ADM_FLAG_FLIP_X;
 
-        if (mNeedBenchmark) mFuCallStartTime = System.nanoTime();
+        if (mNeedBenchmark)
+            mFuCallStartTime = System.nanoTime();
         int fuTex = faceunity.fuRenderToNV21Image(img, w, h, mFrameId++, mItemsArray, flags,
                 readBackW, readBackH, readBackImg);
-        if (mNeedBenchmark) mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
+        if (mNeedBenchmark)
+            mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
         return fuTex;
     }
 
@@ -294,9 +297,11 @@ public class FURenderer implements OnFaceUnityControlListener {
         if (mCurrentCameraType != Camera.CameraInfo.CAMERA_FACING_FRONT)
             flags |= FU_ADM_FLAG_FLIP_X;
 
-        if (mNeedBenchmark) mFuCallStartTime = System.nanoTime();
+        if (mNeedBenchmark)
+            mFuCallStartTime = System.nanoTime();
         int fuTex = faceunity.fuDualInputToTexture(img, tex, flags, w, h, mFrameId++, mItemsArray);
-        if (mNeedBenchmark) mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
+        if (mNeedBenchmark)
+            mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
         return fuTex;
     }
 
@@ -323,10 +328,12 @@ public class FURenderer implements OnFaceUnityControlListener {
         if (mCurrentCameraType != Camera.CameraInfo.CAMERA_FACING_FRONT)
             flags |= FU_ADM_FLAG_FLIP_X;
 
-        if (mNeedBenchmark) mFuCallStartTime = System.nanoTime();
+        if (mNeedBenchmark)
+            mFuCallStartTime = System.nanoTime();
         int fuTex = faceunity.fuDualInputToTexture(img, tex, flags, w, h, mFrameId++, mItemsArray,
                 readBackW, readBackH, readBackImg);
-        if (mNeedBenchmark) mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
+        if (mNeedBenchmark)
+            mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
         return fuTex;
     }
 
@@ -349,9 +356,11 @@ public class FURenderer implements OnFaceUnityControlListener {
 
         int flags = mInputTextureType;
 
-        if (mNeedBenchmark) mFuCallStartTime = System.nanoTime();
+        if (mNeedBenchmark)
+            mFuCallStartTime = System.nanoTime();
         int fuTex = faceunity.fuRenderToTexture(tex, w, h, mFrameId++, mItemsArray, flags);
-        if (mNeedBenchmark) mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
+        if (mNeedBenchmark)
+            mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
         return fuTex;
     }
 
@@ -376,7 +385,8 @@ public class FURenderer implements OnFaceUnityControlListener {
         if (mCurrentCameraType != Camera.CameraInfo.CAMERA_FACING_FRONT)
             flags |= FU_ADM_FLAG_FLIP_X;
 
-        if (mNeedBenchmark) mFuCallStartTime = System.nanoTime();
+        if (mNeedBenchmark)
+            mFuCallStartTime = System.nanoTime();
         faceunity.fuTrackFace(img, flags, w, h);
 
         /**
@@ -417,7 +427,8 @@ public class FURenderer implements OnFaceUnityControlListener {
 
         int tex = faceunity.fuAvatarToTexture(pupilPosData, expressionData, rotationData, rotationModeData,
                 0, w, h, mFrameId++, mItemsArray, isTracking);
-        if (mNeedBenchmark) mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
+        if (mNeedBenchmark)
+            mOneHundredFrameFUTime += System.nanoTime() - mFuCallStartTime;
         return tex;
     }
 
@@ -433,7 +444,8 @@ public class FURenderer implements OnFaceUnityControlListener {
         faceunity.fuDestroyAllItems();
         faceunity.fuOnDeviceLost();
         mEventQueue.clear();
-        if (mIsCreateEGLContext) faceunity.fuReleaseEGLContext();
+        if (mIsCreateEGLContext)
+            faceunity.fuReleaseEGLContext();
     }
 
     /**
@@ -567,6 +579,7 @@ public class FURenderer implements OnFaceUnityControlListener {
      *
      * @param musicTime
      */
+    @Override
     public void onMusicFilterTime(final long musicTime) {
         queueEvent(new Runnable() {
             @Override
@@ -663,14 +676,14 @@ public class FURenderer implements OnFaceUnityControlListener {
     @Override
     public void onEnlargeEyeSelected(float progress) {
         isNeedUpdateFaceBeauty = true;
-            mFaceBeautyEnlargeEye = progress;
+        mFaceBeautyEnlargeEye = progress;
     }
 
 
     @Override
     public void onCheekThinSelected(float progress) {
         isNeedUpdateFaceBeauty = true;
-            mFaceBeautyCheekThin = progress;
+        mFaceBeautyCheekThin = progress;
     }
 
     @Override
@@ -743,7 +756,8 @@ public class FURenderer implements OnFaceUnityControlListener {
     }
 
     private void benchmarkFPS() {
-        if (!mNeedBenchmark) return;
+        if (!mNeedBenchmark)
+            return;
         if (++mCurrentFrameCnt == TIME) {
             mCurrentFrameCnt = 0;
             long tmp = System.nanoTime();
@@ -761,7 +775,8 @@ public class FURenderer implements OnFaceUnityControlListener {
     //--------------------------------------道具（异步加载道具）----------------------------------------
 
     public void createItem(Effect item) {
-        if (item == null) return;
+        if (item == null)
+            return;
         mFuItemHandler.removeMessages(FUItemHandler.HANDLE_CREATE_ITEM);
         mFuItemHandler.sendMessage(Message.obtain(mFuItemHandler, FUItemHandler.HANDLE_CREATE_ITEM, item));
     }
@@ -1064,7 +1079,7 @@ public class FURenderer implements OnFaceUnityControlListener {
         int fuTex = onDrawFrame(texId, texWidth, texHeight);
 //        this.fuImgNV21Bytes = bytes;
 
-        GLES20.glViewport(0,0, texWidth, texHeight);
+        GLES20.glViewport(0, 0, texWidth, texHeight);
         float[] matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
         mFullScreenFUDisplay.drawFrame(fuTex, matrix);
