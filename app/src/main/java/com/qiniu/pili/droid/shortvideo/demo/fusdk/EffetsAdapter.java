@@ -8,7 +8,7 @@ import android.widget.ImageView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
-import com.faceunity.beautycontrolview.entity.Effect;
+import com.faceunity.entity.Effect;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 
 import java.util.List;

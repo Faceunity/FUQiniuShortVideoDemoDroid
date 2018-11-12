@@ -183,6 +183,11 @@ public class AudioRecordActivity extends Activity implements PLRecordStateListen
     }
 
     @Override
+    public void onSectionRecording(long l, long l1, int i) {
+
+    }
+
+    @Override
     public void onRecordStopped() {
         Log.i(TAG, "record stop time: " + System.currentTimeMillis());
         mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);

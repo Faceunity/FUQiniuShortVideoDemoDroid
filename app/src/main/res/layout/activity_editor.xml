@@ -166,7 +166,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <com.faceunity.beautycontrolview.BeautyControlView
+        <com.faceunity.BeautyControlView
             android:id="@+id/faceunity_control"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />

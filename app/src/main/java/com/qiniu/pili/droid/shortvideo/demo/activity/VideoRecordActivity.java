@@ -21,8 +21,8 @@ import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.faceunity.beautycontrolview.BeautyControlView;
-import com.faceunity.beautycontrolview.FURenderer;
+import com.faceunity.BeautyControlView;
+import com.faceunity.FURenderer;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
@@ -462,6 +462,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     @Override
     public void onRecordStarted() {
         Log.i(TAG, "record start time: " + System.currentTimeMillis());
+    }
+
+    @Override
+    public void onSectionRecording(long l, long l1, int i) {
+
     }
 
     @Override

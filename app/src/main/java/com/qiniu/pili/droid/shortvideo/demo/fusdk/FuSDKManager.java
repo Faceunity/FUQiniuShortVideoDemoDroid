@@ -3,8 +3,8 @@ package com.qiniu.pili.droid.shortvideo.demo.fusdk;
 
 import android.content.Context;
 
-import com.faceunity.beautycontrolview.FURenderer;
-import com.faceunity.beautycontrolview.entity.Effect;
+import com.faceunity.FURenderer;
+import com.faceunity.entity.Effect;
 
 import java.util.ArrayList;
 

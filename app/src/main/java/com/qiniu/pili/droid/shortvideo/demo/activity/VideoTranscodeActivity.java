@@ -221,7 +221,7 @@ public class VideoTranscodeActivity extends AppCompatActivity {
         builder.setPositiveButton(getString(R.string.dlg_yes), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                VideoEditActivity.start(VideoTranscodeActivity.this, filePath);
+                //VideoEditActivity.start(VideoTranscodeActivity.this, filePath);
             }
         });
         builder.setNegativeButton(getString(R.string.dlg_no), new DialogInterface.OnClickListener() {

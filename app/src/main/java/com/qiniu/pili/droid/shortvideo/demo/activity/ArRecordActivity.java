@@ -309,7 +309,7 @@ public class ArRecordActivity extends AppCompatActivity implements View.OnClickL
                         Toast.makeText(ArRecordActivity.this, "Recorded at " + url, Toast.LENGTH_LONG).show();
                         recorder.dispose();
                         recorder = null;
-                        VideoEditActivity.start(ArRecordActivity.this, url);
+                        //VideoEditActivity.start(ArRecordActivity.this, url);
                     }
                 } else {
                     if (!PlayerRecorder.isAvailable()) {

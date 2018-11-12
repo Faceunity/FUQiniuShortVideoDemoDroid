@@ -280,6 +280,11 @@ public class VideoDubActivity extends Activity implements PLRecordStateListener,
     }
 
     @Override
+    public void onSectionRecording(long l, long l1, int i) {
+
+    }
+
+    @Override
     public void onRecordStopped() {
         mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);
     }

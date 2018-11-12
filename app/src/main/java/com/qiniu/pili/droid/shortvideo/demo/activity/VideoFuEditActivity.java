@@ -17,9 +17,9 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 
-import com.faceunity.beautycontrolview.EffectEnum;
-import com.faceunity.beautycontrolview.FURenderer;
-import com.faceunity.beautycontrolview.entity.Effect;
+import com.faceunity.EffectEnum;
+import com.faceunity.FURenderer;
+import com.faceunity.entity.Effect;
 import com.qiniu.pili.droid.shortvideo.PLShortVideoEditor;
 import com.qiniu.pili.droid.shortvideo.PLVideoEditSetting;
 import com.qiniu.pili.droid.shortvideo.PLVideoFilterListener;
@@ -429,7 +429,7 @@ public class VideoFuEditActivity extends Activity implements PLVideoSaveListener
             String dubMp4Path = data.getStringExtra(VideoDubActivity.DUB_MP4_PATH);
             if (!TextUtils.isEmpty(dubMp4Path)) {
                 finish();
-                VideoEditActivity.start(this, dubMp4Path);
+                //VideoEditActivity.start(this, dubMp4Path);
             }
         }
     }
