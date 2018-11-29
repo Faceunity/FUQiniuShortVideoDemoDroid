@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static com.faceunity.wrapper.faceunity.FU_ADM_FLAG_FLIP_X;
+import static com.faceunity.wrapper.faceunity.FU_ADM_FLAG_FLIP_Y;
 
 /**
  * 一个基于Faceunity Nama SDK的简单封装，方便简单集成，理论上简单需求的步骤：
@@ -95,7 +96,8 @@ public class FURenderer implements OnFaceUnityControlListener {
     private int mInputImageFormat = 0;
     private boolean mNeedReadBackImage = false; //将传入的byte[]图像复写为具有道具效果的
 
-    private int mInputImageOrientation = 0;
+    private int mInputImageOrientation = 0;//脸的方向
+    private int mInputProp = 0;//道具的方向
     private int mCurrentCameraType = Camera.CameraInfo.CAMERA_FACING_FRONT;
 
     private float[] landmarksData = new float[150];
@@ -448,82 +450,7 @@ public class FURenderer implements OnFaceUnityControlListener {
             faceunity.fuReleaseEGLContext();
     }
 
-    /**
-     * 每帧处理画面时被调用
-     */
-    private void prepareDrawFrame() {
-        //计算FPS等数据
-        benchmarkFPS();
-
-        //获取人脸是否识别，并调用回调接口
-        int isTracking = faceunity.fuIsTracking();
-        if (mOnTrackingStatusChangedListener != null && mTrackingStatus != isTracking) {
-            mOnTrackingStatusChangedListener.onTrackingStatusChanged(mTrackingStatus = isTracking);
-        }
-
-        //获取faceunity错误信息，并调用回调接口
-        int error = faceunity.fuGetSystemError();
-        if (mOnSystemErrorListener != null && error != 0) {
-            mOnSystemErrorListener.onSystemError(error == 0 ? "" : faceunity.fuGetSystemErrorString(error));
-        }
-
-        //获取是否正在表情校准，并调用回调接口
-        final float[] isCalibratingTmp = new float[1];
-        faceunity.fuGetFaceInfo(0, "is_calibrating", isCalibratingTmp);
-        if (mOnCalibratingListener != null && isCalibratingTmp[0] != mIsCalibrating) {
-            mOnCalibratingListener.OnCalibrating(mIsCalibrating = isCalibratingTmp[0]);
-        }
-
-        //修改美颜参数
-        if (isNeedUpdateFaceBeauty && mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX] != 0) {
-            //filter_level 滤镜强度 范围0~1 SDK默认为 1
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "filter_level", mFaceBeautyFilterLevel);
-            //filter_name 滤镜
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "filter_name", mFilterName.filterName());
-
-            //skin_detect 精准美肤 0:关闭 1:开启 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "skin_detect", mFaceBeautyALLBlurLevel);
-            //heavy_blur 美肤类型 0:清晰美肤 1:朦胧美肤 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "heavy_blur", mFaceBeautyType);
-            //blur_level 磨皮 范围0~6 SDK默认为 6
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "blur_level", 6 * mFaceBeautyBlurLevel);
-            //blur_blend_ratio 磨皮结果和原图融合率 范围0~1 SDK默认为 1
-//          faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "blur_blend_ratio", 1);
-
-            //color_level 美白 范围0~1 SDK默认为 1
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "color_level", mFaceBeautyColorLevel);
-            //red_level 红润 范围0~1 SDK默认为 1
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "red_level", mFaceBeautyRedLevel);
-            //eye_bright 亮眼 范围0~1 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "eye_bright", mBrightEyesLevel);
-            //tooth_whiten 美牙 范围0~1 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "tooth_whiten", mBeautyTeethLevel);
-
-
-            //face_shape_level 美型程度 范围0~1 SDK默认为1
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "face_shape_level", mFaceShapeLevel);
-            //face_shape 脸型 0：女神 1：网红 2：自然 3：默认 SDK默认为 3
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "face_shape", mFaceBeautyFaceShape);
-            //eye_enlarging 大眼 范围0~1 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "eye_enlarging", mFaceBeautyEnlargeEye);
-            //cheek_thinning 瘦脸 范围0~1 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "cheek_thinning", mFaceBeautyCheekThin);
-            //intensity_chin 下巴 范围0~1 SDK默认为 0.5    大于0.5变大，小于0.5变小
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_chin", mChinLevel);
-            //intensity_forehead 额头 范围0~1 SDK默认为 0.5    大于0.5变大，小于0.5变小
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_forehead", mForeheadLevel);
-            //intensity_nose 鼻子 范围0~1 SDK默认为 0
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_nose", mThinNoseLevel);
-            //intensity_mouth 嘴型 范围0~1 SDK默认为 0.5   大于0.5变大，小于0.5变小
-            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_mouth", mMouthShape);
-            isNeedUpdateFaceBeauty = false;
-        }
-
-        //queueEvent的Runnable在此处被调用
-        while (!mEventQueue.isEmpty()) {
-            mEventQueue.remove(0).run();
-        }
-    }
+    private float[] mMvpMtx270 = new float[16];
 
     //--------------------------------------对外可使用的接口----------------------------------------
 
@@ -558,14 +485,16 @@ public class FURenderer implements OnFaceUnityControlListener {
      * @param currentCameraType     前后置摄像头ID
      * @param inputImageOrientation
      */
-    public void onCameraChange(final int currentCameraType, final int inputImageOrientation) {
-        if (mCurrentCameraType == currentCameraType && mInputImageOrientation == inputImageOrientation)
+    public void onCameraChange(final int currentCameraType, final int inputImageOrientation, final int inputProp) {
+        if (mCurrentCameraType == currentCameraType && mInputImageOrientation == inputImageOrientation
+                && mInputProp == inputProp)
             return;
         queueEvent(new Runnable() {
             @Override
             public void run() {
                 mCurrentCameraType = currentCameraType;
                 mInputImageOrientation = inputImageOrientation;
+                mInputProp = inputProp;
                 faceunity.fuOnCameraChange();
                 updateEffectItemParams(mItemsArray[ITEM_ARRAYS_EFFECT]);
                 faceunity.fuSetDefaultOrientation((360 - mInputImageOrientation) / 90);
@@ -587,6 +516,11 @@ public class FURenderer implements OnFaceUnityControlListener {
                 faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_EFFECT], "music_time", musicTime);
             }
         });
+    }
+
+
+    public void setCurrentCameraType(int mCurrentCameraType) {
+        this.mCurrentCameraType = mCurrentCameraType;
     }
 
     /**
@@ -840,31 +774,7 @@ public class FURenderer implements OnFaceUnityControlListener {
         }
     }
 
-    /**
-     * fuCreateItemFromPackage 加载道具
-     *
-     * @param bundle（Effect本demo定义的道具实体类）
-     * @return 大于0时加载成功
-     */
-    private int loadItem(Effect bundle) {
-        int item = 0;
-        try {
-            if (bundle.effectType() == Effect.EFFECT_TYPE_NONE) {
-                item = 0;
-            } else {
-                InputStream is = mContext.getAssets().open(bundle.path());
-                byte[] itemData = new byte[is.available()];
-                int len = is.read(itemData);
-                Log.e(TAG, bundle.path() + " len " + len);
-                is.close();
-                item = faceunity.fuCreateItemFromPackage(itemData);
-                updateEffectItemParams(item);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return item;
-    }
+    private float[] mMvpMtx90 = new float[16];
 
     /**
      * 设置对道具设置相应的参数
@@ -878,7 +788,7 @@ public class FURenderer implements OnFaceUnityControlListener {
                 faceunity.fuItemSetParam(itemHandle, "isAndroid", 1.0);
 
                 //rotationAngle 参数是用于旋转普通道具
-                faceunity.fuItemSetParam(itemHandle, "rotationAngle", 360 - mInputImageOrientation);
+                faceunity.fuItemSetParam(itemHandle, "rotationAngle", 360 - mInputProp);
 
                 //这两句代码用于识别人脸默认方向的修改，主要针对animoji道具的切换摄像头倒置问题
                 faceunity.fuItemSetParam(itemHandle, "camera_change", 1.0);
@@ -909,6 +819,7 @@ public class FURenderer implements OnFaceUnityControlListener {
         private boolean needReadBackImage = false;
         private int inputImageFormat = 0;
         private int inputImageRotation = 90;
+        private int inputProp = 90;
         private boolean isNeedAnimoji3D = false;
         private boolean isNeedFaceBeauty = true;
 
@@ -956,6 +867,11 @@ public class FURenderer implements OnFaceUnityControlListener {
             return this;
         }
 
+        public Builder inputProp(int inputProp) {
+            this.inputProp = inputProp;
+            return this;
+        }
+
         public Builder setNeedAnimoji3D(boolean needAnimoji3D) {
             this.isNeedAnimoji3D = needAnimoji3D;
             return this;
@@ -993,6 +909,7 @@ public class FURenderer implements OnFaceUnityControlListener {
             fuRenderer.mNeedReadBackImage = needReadBackImage;
             fuRenderer.mInputImageFormat = inputImageFormat;
             fuRenderer.mInputImageOrientation = inputImageRotation;
+            fuRenderer.mInputProp = inputProp;
             fuRenderer.mDefaultEffect = defaultEffect;
             fuRenderer.isNeedAnimoji3D = isNeedAnimoji3D;
             fuRenderer.isNeedFaceBeauty = isNeedFaceBeauty;
@@ -1006,19 +923,99 @@ public class FURenderer implements OnFaceUnityControlListener {
 
     }
 
+    /*-------------------七牛视频------------------*/
+
     private static boolean isInit;
-
     private FullFrameRect mFullScreenFUDisplay;
+    /* --------------FBO----------------*/
+    private int fboId[];
 
-    private volatile int cameraWidth, cameraHeight;
+    {
+        Matrix.setIdentityM(mMvpMtx270, 0);
+        Matrix.rotateM(mMvpMtx270, 0, 270, 0, 0, 1);
+    }
 
-    private volatile byte[] mCameraNV21Byte;
-    private byte[] fuImgNV21Bytes;
+    {
+        Matrix.setIdentityM(mMvpMtx90, 0);
+        Matrix.rotateM(mMvpMtx90, 0, 90, 0, 0, 1);
+    }
 
-    private int mCameraRotate;
-    private int mCameraId;
-    private float[] mCameraMatrix1;
-    private float[] mCameraMatrix2;
+    /**
+     * 每帧处理画面时被调用
+     */
+    private void prepareDrawFrame() {
+        //计算FPS等数据
+        benchmarkFPS();
+
+        //获取人脸是否识别，并调用回调接口
+        int isTracking = faceunity.fuIsTracking();
+        if (mOnTrackingStatusChangedListener != null && mTrackingStatus != isTracking) {
+            mOnTrackingStatusChangedListener.onTrackingStatusChanged(mTrackingStatus = isTracking);
+        }
+
+        //获取faceunity错误信息，并调用回调接口
+        int error = faceunity.fuGetSystemError();
+        if (mOnSystemErrorListener != null && error != 0) {
+            mOnSystemErrorListener.onSystemError(faceunity.fuGetSystemErrorString(error));
+        }
+
+        //获取是否正在表情校准，并调用回调接口
+        final float[] isCalibratingTmp = new float[1];
+        faceunity.fuGetFaceInfo(0, "is_calibrating", isCalibratingTmp);
+        if (mOnCalibratingListener != null && isCalibratingTmp[0] != mIsCalibrating) {
+            mOnCalibratingListener.OnCalibrating(mIsCalibrating = isCalibratingTmp[0]);
+        }
+
+        //修改美颜参数
+        if (isNeedUpdateFaceBeauty && mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX] != 0) {
+            //filter_level 滤镜强度 范围0~1 SDK默认为 1
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "filter_level", mFaceBeautyFilterLevel);
+            //filter_name 滤镜
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "filter_name", mFilterName.filterName());
+
+            //skin_detect 精准美肤 0:关闭 1:开启 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "skin_detect", mFaceBeautyALLBlurLevel);
+            //heavy_blur 美肤类型 0:清晰美肤 1:朦胧美肤 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "heavy_blur", mFaceBeautyType);
+            //blur_level 磨皮 范围0~6 SDK默认为 6
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "blur_level", 6 * mFaceBeautyBlurLevel);
+            //blur_blend_ratio 磨皮结果和原图融合率 范围0~1 SDK默认为 1
+//          faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "blur_blend_ratio", 1);
+
+            //color_level 美白 范围0~1 SDK默认为 1
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "color_level", mFaceBeautyColorLevel);
+            //red_level 红润 范围0~1 SDK默认为 1
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "red_level", mFaceBeautyRedLevel);
+            //eye_bright 亮眼 范围0~1 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "eye_bright", mBrightEyesLevel);
+            //tooth_whiten 美牙 范围0~1 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "tooth_whiten", mBeautyTeethLevel);
+
+
+            //face_shape_level 美型程度 范围0~1 SDK默认为1
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "face_shape_level", mFaceShapeLevel);
+            //face_shape 脸型 0：女神 1：网红 2：自然 3：默认 SDK默认为 3
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "face_shape", mFaceBeautyFaceShape);
+            //eye_enlarging 大眼 范围0~1 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "eye_enlarging", mFaceBeautyEnlargeEye);
+            //cheek_thinning 瘦脸 范围0~1 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "cheek_thinning", mFaceBeautyCheekThin);
+            //intensity_chin 下巴 范围0~1 SDK默认为 0.5    大于0.5变大，小于0.5变小
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_chin", mChinLevel);
+            //intensity_forehead 额头 范围0~1 SDK默认为 0.5    大于0.5变大，小于0.5变小
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_forehead", mForeheadLevel);
+            //intensity_nose 鼻子 范围0~1 SDK默认为 0
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_nose", mThinNoseLevel);
+            //intensity_mouth 嘴型 范围0~1 SDK默认为 0.5   大于0.5变大，小于0.5变小
+            faceunity.fuItemSetParam(mItemsArray[ITEM_ARRAYS_FACE_BEAUTY_INDEX], "intensity_mouth", mMouthShape);
+            isNeedUpdateFaceBeauty = false;
+        }
+
+        //queueEvent的Runnable在此处被调用
+        while (!mEventQueue.isEmpty()) {
+            mEventQueue.remove(0).run();
+        }
+    }
 
     private boolean isActive;
 
@@ -1032,12 +1029,6 @@ public class FURenderer implements OnFaceUnityControlListener {
                 Texture2dProgram.ProgramType.TEXTURE_2D));
 
         onSurfaceCreated();
-
-        cameraWidth = 0;
-        cameraHeight = 0;
-
-        mCameraNV21Byte = null;
-
         isActive = true;
     }
 
@@ -1049,72 +1040,94 @@ public class FURenderer implements OnFaceUnityControlListener {
         deleteFBO();
     }
 
-    public int onDrawFrame(int texId, int texWidth, int texHeight, float[] transformMatrix) {
+    /**
+     * fuCreateItemFromPackage 加载道具
+     *
+     * @param bundle（Effect本demo定义的道具实体类）
+     * @return 大于0时加载成功
+     */
+    private int loadItem(Effect bundle) {
+        int item = 0;
+        try {
+            if (bundle.effectType() == Effect.EFFECT_TYPE_NONE) {
+                item = 0;
+            } else {
+                InputStream is = mContext.getAssets().open(bundle.path());
+                byte[] itemData = new byte[is.available()];
+                int len = is.read(itemData);
+                is.close();
+                item = faceunity.fuCreateItemFromPackage(itemData);
+                Log.e(TAG, bundle.path() + " len " + len + ", handle:" + item);
+                updateEffectItemParams(item);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return item;
+    }
+
+    // 使用 FBO，先对原始纹理做旋转，保持和相机数据的方向一致，然后FU绘制，最后转正输出
+    public int onDrawFrameByFBO(byte[] cameraNV21Byte, int texId, int texWidth, int texHeight) {
         if (!isActive) {
             return texId;
         }
-
-//        byte[] mCameraNV21Byte = this.mCameraNV21Byte;
-//        if (mCameraNV21Byte == null || mCameraNV21Byte.length == 0 || mCameraNV21Byte.length != texWidth * texHeight * 3 / 2) {
-//            Log.e(TAG, "camera nv21 bytes null");
-//            return texId;
-//        }
-
         createFBO(texWidth, texHeight);
 
         int[] originalViewPort = new int[4];
         GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, originalViewPort, 0);
+        if (mCurrentCameraType == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
+            GLES20.glViewport(0, 0, texWidth, texHeight);
+            mFullScreenFUDisplay.drawFrame(texId, mMvpMtx270);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
 
-//        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[1]);
-//
-//        float[] matrix = new float[16];
-//        Matrix.setIdentityM(matrix, 0);
-//
-//        GLES20.glViewport(0,0, texWidth, texHeight);
-//        mFullScreenFUDisplay.drawFrame(texId, matrix);
+            int fuTex = onDrawFrame(cameraNV21Byte, fboTex[0], texHeight, texWidth);
 
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[1]);
+            GLES20.glViewport(0, 0, texWidth, texHeight);
+            mFullScreenFUDisplay.drawFrame(fuTex, mMvpMtx90);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
 
-//        byte[] bytes = new byte[texWidth * texHeight * 3 / 2];
-        int fuTex = onDrawFrame(texId, texWidth, texHeight);
-//        this.fuImgNV21Bytes = bytes;
+            return fboTex[1];
+        } else {
+            //如果是后置摄像头先旋转90度,在左右镜像
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
+            GLES20.glViewport(0, 0, texWidth, texHeight);
+            mFullScreenFUDisplay.drawFrame(texId, mMvpMtx90);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
 
-        GLES20.glViewport(0, 0, texWidth, texHeight);
-        float[] matrix = new float[16];
-        Matrix.setIdentityM(matrix, 0);
-        mFullScreenFUDisplay.drawFrame(fuTex, matrix);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[1]);
+            GLES20.glViewport(0, 0, texWidth, texHeight);
+            float[] matrix = new float[16];
+            Matrix.setIdentityM(matrix, 0);
+            matrix[5] = -1.0f;
+            mFullScreenFUDisplay.drawFrame(fboTex[0], matrix);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
 
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            int fuTex = onDrawFrame(cameraNV21Byte, fboTex[1], texHeight, texWidth);
 
-        GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[2]);
+            GLES20.glViewport(0, 0, texWidth, texHeight);
+            mFullScreenFUDisplay.drawFrame(fuTex, mMvpMtx270);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
 
-        return fboTex[0];
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[3]);
+            GLES20.glViewport(0, 0, texWidth, texHeight);
+            float[] mMvpMtx = new float[16];
+            Matrix.setIdentityM(mMvpMtx, 0);
+            mMvpMtx[0] = -1.0f;
+            mFullScreenFUDisplay.drawFrame(fboTex[2], mMvpMtx);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(originalViewPort[0], originalViewPort[1], originalViewPort[2], originalViewPort[3]);
+            return fboTex[3];
+        }
     }
 
-    public boolean onPreviewFrame(byte[] data, int width, int height, int rotation, int fmt, long timestampNs) {
-//        mCameraNV21Byte = data;
-//
-//        if (mCameraRotate != rotation || mCameraId != mCurrentCameraId || mCameraMatrix1 == null || mCameraMatrix2 == null) {
-//            mCameraRotate = rotation;
-//            mCameraId = mCurrentCameraId;
-//            mCameraMatrix1 = new float[16];
-//            mCameraMatrix2 = new float[16];
-//            if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-//                Matrix.setRotateM(mCameraMatrix1, 0, mCameraRotate, 0F, 0F, 1F);
-//                Matrix.setRotateM(mCameraMatrix2, 0, -mCameraRotate, 0F, 0F, 1F);
-//            } else {
-//                Matrix.setIdentityM(mCameraMatrix1, 0);
-//                mCameraMatrix1[0] = -1;
-//                Matrix.rotateM(mCameraMatrix1, 0, -mCameraRotate, 0F, 0F, 1F);
-//                Matrix.setIdentityM(mCameraMatrix2, 0);
-//                mCameraMatrix2[0] = -1;
-//                Matrix.rotateM(mCameraMatrix2, 0, -mCameraRotate, 0F, 0F, 1F);
-//            }
-//        }
-        return false;
-    }
-
-    private int fboId[];
     private int fboTex[];
     private int renderBufferId[];
 
@@ -1129,16 +1142,16 @@ public class FURenderer implements OnFaceUnityControlListener {
         fboHeight = height;
 
         if (fboTex == null) {
-            fboId = new int[2];
-            fboTex = new int[2];
-            renderBufferId = new int[2];
+            fboId = new int[4];
+            fboTex = new int[4];
+            renderBufferId = new int[4];
 
 //generate fbo id
-            GLES20.glGenFramebuffers(2, fboId, 0);
+            GLES20.glGenFramebuffers(4, fboId, 0);
 //generate texture
-            GLES20.glGenTextures(2, fboTex, 0);
+            GLES20.glGenTextures(4, fboTex, 0);
 //generate render buffer
-            GLES20.glGenRenderbuffers(2, renderBufferId, 0);
+            GLES20.glGenRenderbuffers(4, renderBufferId, 0);
 
             for (int i = 0; i < fboId.length; i++) {
 //Bind Frame buffer

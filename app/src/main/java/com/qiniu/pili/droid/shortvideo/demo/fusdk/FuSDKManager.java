@@ -5,6 +5,7 @@ import android.content.Context;
 
 import com.faceunity.FURenderer;
 import com.faceunity.entity.Effect;
+import com.faceunity.wrapper.faceunity;
 
 import java.util.ArrayList;
 
@@ -119,7 +120,10 @@ public class FuSDKManager {
 
     private FURenderer createFilterEngine() {
         // 美颜处理
-        FURenderer filterEngine = new FURenderer.Builder(mContext).build();
+        FURenderer filterEngine = new FURenderer
+                .Builder(mContext)
+                .inputTextureType(faceunity.FU_ADM_FLAG_ENABLE_READBACK)
+                .build();
 
         // 设置是否输出原始图片朝向 false: 图像被转正后输出
 

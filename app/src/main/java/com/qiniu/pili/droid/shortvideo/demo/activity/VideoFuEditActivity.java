@@ -141,7 +141,8 @@ public class VideoFuEditActivity extends Activity implements PLVideoSaveListener
                         FURenderer preRender = mFuSDKManager.getPreviewFilterEngine();
                         preRender.onEffectSelected(model.getMagicCode());
                         int id = preRender.onDrawFrame(texId, texWidth, texHeight);
-                        Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + " model:" + model + " texId:" + id);
+                        Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + " model:" + model + " texId:" + id + "--width="
+                                + texWidth + "--height=" + texHeight);
                         return id;
                     } else {
                         Log.i(TAG, "model:" + model + "    curPos:" + curPos);
@@ -151,6 +152,7 @@ public class VideoFuEditActivity extends Activity implements PLVideoSaveListener
             return texId;
         }
     };
+
     private EffetsAdapter.ItemTouchListener mOnEffectTouchListener = new EffetsAdapter.ItemTouchListener() {
         private int PRESS_DELAY_TIME = 300;
         private Timer timer;
