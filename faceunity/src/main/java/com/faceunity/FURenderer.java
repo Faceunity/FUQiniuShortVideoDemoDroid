@@ -803,6 +803,16 @@ public class FURenderer implements OnFaceUnityControlListener {
         });
     }
 
+    public void setInputProp(int mInputProp) {
+        this.mInputProp = mInputProp;
+        queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                updateEffectItemParams(mItemsArray[ITEM_ARRAYS_EFFECT]);
+            }
+        });
+    }
+
     //--------------------------------------Builder----------------------------------------
 
     /**
@@ -1071,6 +1081,7 @@ public class FURenderer implements OnFaceUnityControlListener {
             return texId;
         }
         createFBO(texWidth, texHeight);
+        Log.d("sss", "mInputProp=" + mInputProp);
 
         int[] originalViewPort = new int[4];
         GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, originalViewPort, 0);

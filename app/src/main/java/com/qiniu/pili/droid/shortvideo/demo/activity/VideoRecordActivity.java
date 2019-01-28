@@ -94,6 +94,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private FURenderer mFURenderer;
     //    private int cameraId[], mInputProp;
     private int cameraId;
+    private int mInputProp;
     private BeautyControlView mFaceunityControlView;
 
     private int mFocusIndicatorX;
@@ -213,8 +214,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 //        cameraId = getFrontCameraOrientation();
 //        mInputProp = cameraId[1];
         cameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+        mInputProp = getCameraOrientation(cameraId);
+        Log.d("mInputProp", mInputProp + "");
         mFURenderer = new FURenderer
                 .Builder(this)
+                .inputProp(mInputProp)
 //                .inputImageOrientation(cameraId[1])
 //                .inputProp(cameraId[1])
                 .build();
@@ -447,6 +451,9 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         } else {
             cameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
         }
+        mInputProp = getCameraOrientation(cameraId);
+        Log.d("mInputProp", mInputProp + "");
+        mFURenderer.setInputProp(mInputProp);
         mFURenderer.setCurrentCameraType(cameraId);
 //        if (cameraId[0] == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 //            cameraId[0] = Camera.CameraInfo.CAMERA_FACING_BACK;
