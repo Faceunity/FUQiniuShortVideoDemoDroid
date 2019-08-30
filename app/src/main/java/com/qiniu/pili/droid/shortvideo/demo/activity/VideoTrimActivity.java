@@ -325,7 +325,7 @@ public class VideoTrimActivity extends Activity {
             @Override
             public void onSaveVideoSuccess(String path) {
                 mProcessingDialog.dismiss();
-                //VideoEditActivity.start(VideoTrimActivity.this, path);
+                VideoEditActivity.start(VideoTrimActivity.this, path);
             }
 
             @Override

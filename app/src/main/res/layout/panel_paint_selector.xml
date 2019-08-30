@@ -18,7 +18,8 @@
             android:id="@+id/close_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="#0000" />
+            android:background="#0000"
+            android:src="@drawable/btn_close" />
 
         <TextView
             android:id="@+id/paint_undo_text"

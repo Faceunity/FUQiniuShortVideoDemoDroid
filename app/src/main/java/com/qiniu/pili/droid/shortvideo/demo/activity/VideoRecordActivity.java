@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.media.AudioFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
@@ -14,7 +15,9 @@ import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -22,8 +25,8 @@ import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.faceunity.BeautyControlView;
-import com.faceunity.FURenderer;
+import com.faceunity.beautycontrolview.BeautyControlView;
+import com.faceunity.beautycontrolview.FURenderer;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
@@ -40,9 +43,11 @@ import com.qiniu.pili.droid.shortvideo.PLVideoEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLVideoFilterListener;
 import com.qiniu.pili.droid.shortvideo.PLVideoFrame;
 import com.qiniu.pili.droid.shortvideo.PLVideoSaveListener;
+import com.qiniu.pili.droid.shortvideo.demo.MyApp;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 import com.qiniu.pili.droid.shortvideo.demo.utils.Config;
 import com.qiniu.pili.droid.shortvideo.demo.utils.GetPathFromUri;
+import com.qiniu.pili.droid.shortvideo.demo.utils.PreferenceUtil;
 import com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings;
 import com.qiniu.pili.droid.shortvideo.demo.utils.ToastUtils;
 import com.qiniu.pili.droid.shortvideo.demo.view.CustomProgressDialog;
@@ -67,6 +72,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     public static final String AUDIO_CHANNEL_NUM = "AudioChannelNum";
     public static final String DRAFT = "draft";
 
+    /**
+     * NOTICE: TUSDK needs extra cost
+     */
+    private static final boolean USE_TUSDK = true;
+
     private PLShortVideoRecorder mShortVideoRecorder;
 
     private SectionProgressBar mSectionProgressBar;
@@ -79,6 +89,9 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private FocusIndicator mFocusIndicator;
     private SeekBar mAdjustBrightnessSeekBar;
 
+    private TextView mRecordingPercentageView;
+    private long mLastRecordingPercentageViewUpdateTime = 0;
+
     private boolean mFlashEnabled;
     private boolean mIsEditVideo = false;
 
@@ -90,22 +103,28 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private PLVideoEncodeSetting mVideoEncodeSetting;
     private PLAudioEncodeSetting mAudioEncodeSetting;
     private PLFaceBeautySetting mFaceBeautySetting;
+    private ViewGroup mBottomControlPanel;
 
     private FURenderer mFURenderer;
+    private String isOn;
     //    private int cameraId[], mInputProp;
     private int cameraId;
     private int mInputProp;
     private BeautyControlView mFaceunityControlView;
+    // 原始的相机数据
+    private byte[] mCameraData;
 
     private int mFocusIndicatorX;
     private int mFocusIndicatorY;
 
     private double mRecordSpeed;
     private TextView mSpeedTextView;
-    // 原始的相机数据
-    private byte[] mCameraData;
 
     private Stack<Long> mDurationRecordStack = new Stack();
+    private Stack<Double> mDurationVideoStack = new Stack();
+
+    private OrientationEventListener mOrientationListener;
+    private boolean mSectionBegan;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,6 +143,8 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         mSwitchFlashBtn = findViewById(R.id.switch_flash);
         mFocusIndicator = (FocusIndicator) findViewById(R.id.focus_indicator);
         mAdjustBrightnessSeekBar = (SeekBar) findViewById(R.id.adjust_brightness);
+        mBottomControlPanel = (ViewGroup) findViewById(R.id.bottom_control_panel);
+        mRecordingPercentageView = (TextView) findViewById(R.id.recording_percentage);
 
         mProcessingDialog = new CustomProgressDialog(this);
         mProcessingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -163,21 +184,23 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             mVideoEncodeSetting.setEncodingSizeLevel(RecordSettings.ENCODING_SIZE_LEVEL_ARRAY[encodingSizeLevelPos]);
             mVideoEncodeSetting.setEncodingBitrate(RecordSettings.ENCODING_BITRATE_LEVEL_ARRAY[encodingBitrateLevelPos]);
             mVideoEncodeSetting.setHWCodecEnabled(encodingModePos == 0);
+            mVideoEncodeSetting.setConstFrameRateEnabled(true);
 
             mAudioEncodeSetting = new PLAudioEncodeSetting();
             mAudioEncodeSetting.setHWCodecEnabled(encodingModePos == 0);
             mAudioEncodeSetting.setChannels(RecordSettings.AUDIO_CHANNEL_NUM_ARRAY[audioChannelNumPos]);
 
             mRecordSetting = new PLRecordSetting();
-            mRecordSetting.setMaxRecordDuration((long) (RecordSettings.DEFAULT_MAX_RECORD_DURATION * mRecordSpeed));
+            mRecordSetting.setMaxRecordDuration(RecordSettings.DEFAULT_MAX_RECORD_DURATION);
+            mRecordSetting.setRecordSpeedVariable(true);
             mRecordSetting.setVideoCacheDir(Config.VIDEO_STORAGE_DIR);
             mRecordSetting.setVideoFilepath(Config.RECORD_FILE_PATH);
 
             mFaceBeautySetting = new PLFaceBeautySetting(1.0f, 0.5f, 0.5f);
 
             mShortVideoRecorder.prepare(preview, mCameraSetting, mMicrophoneSetting, mVideoEncodeSetting,
-                    mAudioEncodeSetting, null, mRecordSetting);
-            mSectionProgressBar.setFirstPointTime((long) (RecordSettings.DEFAULT_MIN_RECORD_DURATION * mRecordSpeed));
+                    mAudioEncodeSetting, USE_TUSDK ? null : mFaceBeautySetting, mRecordSetting);
+            mSectionProgressBar.setFirstPointTime(RecordSettings.DEFAULT_MIN_RECORD_DURATION);
             onSectionCountChanged(0, 0);
         } else {
             PLDraft draft = PLDraftBox.getInstance(this).getDraftByTag(draftTag);
@@ -199,38 +222,48 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                     long currentDuration = draft.getSectionDuration(i);
                     draftDuration += draft.getSectionDuration(i);
                     onSectionIncreased(currentDuration, draftDuration, i + 1);
+                    if (!mDurationRecordStack.isEmpty()) {
+                        mDurationRecordStack.pop();
+                    }
                 }
                 mSectionProgressBar.setFirstPointTime(draftDuration);
                 ToastUtils.s(this, getString(R.string.toast_draft_recover_success));
             } else {
                 onSectionCountChanged(0, 0);
-                mSectionProgressBar.setFirstPointTime((long) (RecordSettings.DEFAULT_MIN_RECORD_DURATION * mRecordSpeed));
+                mSectionProgressBar.setFirstPointTime(RecordSettings.DEFAULT_MIN_RECORD_DURATION);
                 ToastUtils.s(this, getString(R.string.toast_draft_recover_fail));
             }
         }
         mShortVideoRecorder.setRecordSpeed(mRecordSpeed);
+        mSectionProgressBar.setProceedingSpeed(mRecordSpeed);
         mSectionProgressBar.setTotalTime(this, mRecordSetting.getMaxRecordDuration());
 
-//        cameraId = getFrontCameraOrientation();
-//        mInputProp = cameraId[1];
         cameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
         mInputProp = getCameraOrientation(cameraId);
         Log.d("mInputProp", mInputProp + "");
-        mFURenderer = new FURenderer
-                .Builder(this)
-                .inputProp(mInputProp)
-//                .inputImageOrientation(cameraId[1])
-//                .inputProp(cameraId[1])
-                .build();
+
+        isOn = PreferenceUtil.getString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
 
         mFaceunityControlView = (BeautyControlView) findViewById(R.id.faceunity_control);
-        mFaceunityControlView.setOnFaceUnityControlListener(mFURenderer);
+
+        if (isOn.equals("false")) {
+            mFaceunityControlView.setVisibility(View.GONE);
+        } else {
+            mFURenderer = new FURenderer
+                    .Builder(this)
+                    .inputProp(mInputProp)
+                    .inputImageOrientation(mInputProp)
+//                .inputProp(cameraId[1])
+                    .build();
+            mFaceunityControlView.setOnFaceUnityControlListener(mFURenderer);
+        }
 
         mShortVideoRecorder.setVideoFilterListener(new PLVideoFilterListener() {
 
             @Override
             public void onSurfaceCreated() {
-                mFURenderer.loadItems();
+                if (mFURenderer != null)
+                    mFURenderer.loadItems();
             }
 
             @Override
@@ -239,7 +272,8 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
             @Override
             public void onSurfaceDestroy() {
-                mFURenderer.destroyItems();
+                if (mFURenderer != null)
+                    mFURenderer.destroyItems();
                 mCameraData = null;
             }
 
@@ -256,9 +290,9 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             @Override
             public int onDrawFrame(int texId, int texWidth, int texHeight, long timeStampNs, float[] transformMatrix) {
                 int id;
-                if (mCameraData != null) {
-//                    id = mFURenderer.onDrawFrame(mCameraData, texWidth, texHeight);
-                    id = mFURenderer.onDrawFrameByFBO(mCameraData, texId, texWidth, texHeight);
+                if (mCameraData != null && mFURenderer != null) {
+//                    id = mFURenderer.onDrawFrameSingleInputTex(texId, texWidth, texHeight);
+                    id = mFURenderer.onDrawFrameFBODoubleInput(mCameraData, texId, texWidth, texHeight);
                 } else {
                     id = texId;
                 }
@@ -292,7 +326,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
         mRecordBtn.setOnTouchListener(new View.OnTouchListener() {
             private long mSectionBeginTSMs;
-            private boolean mSectionBegan;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -308,9 +341,19 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                     }
                 } else if (action == MotionEvent.ACTION_UP) {
                     if (mSectionBegan) {
-                        long totalDurationMs = (System.currentTimeMillis() - mSectionBeginTSMs) + (mDurationRecordStack.isEmpty() ? 0 : mDurationRecordStack.peek());
-                        mDurationRecordStack.push(totalDurationMs);
-                        mSectionProgressBar.addBreakPointTime(totalDurationMs);
+                        long sectionRecordDurationMs = System.currentTimeMillis() - mSectionBeginTSMs;
+                        long totalRecordDurationMs = sectionRecordDurationMs + (mDurationRecordStack.isEmpty() ? 0 : mDurationRecordStack.peek().longValue());
+                        double sectionVideoDurationMs = sectionRecordDurationMs / mRecordSpeed;
+                        double totalVideoDurationMs = sectionVideoDurationMs + (mDurationVideoStack.isEmpty() ? 0 : mDurationVideoStack.peek().doubleValue());
+                        mDurationRecordStack.push(new Long(totalRecordDurationMs));
+                        mDurationVideoStack.push(new Double(totalVideoDurationMs));
+                        if (mRecordSetting.IsRecordSpeedVariable()) {
+                            Log.d(TAG, "SectionRecordDuration: " + sectionRecordDurationMs + "; sectionVideoDuration: " + sectionVideoDurationMs + "; totalVideoDurationMs: " + totalVideoDurationMs + "Section count: " + mDurationVideoStack.size());
+                            mSectionProgressBar.addBreakPointTime((long) totalVideoDurationMs);
+                        } else {
+                            mSectionProgressBar.addBreakPointTime(totalRecordDurationMs);
+                        }
+
                         mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);
                         mShortVideoRecorder.endSection();
                         mSectionBegan = false;
@@ -336,25 +379,19 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                 return true;
             }
         });
-    }
 
-    private void updateRecordingBtns(boolean isRecording) {
-        mSwitchCameraBtn.setEnabled(!isRecording);
-        mRecordBtn.setActivated(isRecording);
-    }
-
-    public int[] getFrontCameraOrientation() {
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        int cameraId = 1;
-        int numCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numCameras; i++) {
-            Camera.getCameraInfo(i, info);
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                cameraId = i;
-                break;
+        mOrientationListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                int rotation = getScreenRotation(orientation);
+                if (!mSectionProgressBar.isRecorded() && !mSectionBegan) {
+                    mVideoEncodeSetting.setRotationInMetadata(rotation);
+                }
             }
+        };
+        if (mOrientationListener.canDetectOrientation()) {
+            mOrientationListener.enable();
         }
-        return new int[]{cameraId, getCameraOrientation(cameraId)};
     }
 
     public int getCameraOrientation(int cameraId) {
@@ -362,6 +399,26 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         Camera.getCameraInfo(cameraId, info);
         Log.d("orientation", info.orientation + "");
         return info.orientation;
+    }
+
+    private int getScreenRotation(int orientation) {
+        int screenRotation = 0;
+        boolean isPortraitScreen = getResources().getConfiguration().orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        if (orientation >= 315 || orientation < 45) {
+            screenRotation = isPortraitScreen ? 0 : 90;
+        } else if (orientation >= 45 && orientation < 135) {
+            screenRotation = isPortraitScreen ? 90 : 180;
+        } else if (orientation >= 135 && orientation < 225) {
+            screenRotation = isPortraitScreen ? 180 : 270;
+        } else if (orientation >= 225 && orientation < 315) {
+            screenRotation = isPortraitScreen ? 270 : 0;
+        }
+        return screenRotation;
+    }
+
+    private void updateRecordingBtns(boolean isRecording) {
+        mSwitchCameraBtn.setEnabled(!isRecording);
+        mRecordBtn.setActivated(isRecording);
     }
 
     public void onScreenRotation(View v) {
@@ -404,13 +461,12 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         });
     }
 
+
     @Override
     protected void onResume() {
         super.onResume();
         mRecordBtn.setEnabled(false);
         mShortVideoRecorder.resume();
-
-        mFaceunityControlView.onResume();
     }
 
     @Override
@@ -418,14 +474,13 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         super.onPause();
         updateRecordingBtns(false);
         mShortVideoRecorder.pause();
-
-        mFaceunityControlView.onPause();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         mShortVideoRecorder.destroy();
+        mOrientationListener.disable();
     }
 
     public void onClickDelete(View v) {
@@ -453,17 +508,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         }
         mInputProp = getCameraOrientation(cameraId);
         Log.d("mInputProp", mInputProp + "");
-        mFURenderer.setInputProp(mInputProp);
-        mFURenderer.setCurrentCameraType(cameraId);
-//        if (cameraId[0] == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-//            cameraId[0] = Camera.CameraInfo.CAMERA_FACING_BACK;
-//            mInputProp = 270;
-//        } else {
-//            cameraId[0] = Camera.CameraInfo.CAMERA_FACING_FRONT;
-//            mInputProp = getCameraOrientation(cameraId[0]);
-//        }
-//        cameraId[1] = getCameraOrientation(cameraId[0]);
-//        mFURenderer.onCameraChange(cameraId[0], cameraId[1], mInputProp);
+
+        if (mFURenderer != null) {
+            mFURenderer.setInputProp(mInputProp);
+            mFURenderer.setCurrentCameraType(cameraId);
+        }
         mFocusIndicator.focusCancel();
     }
 
@@ -554,11 +603,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     }
 
     @Override
-    public void onSectionRecording(long l, long l1, int i) {
-
-    }
-
-    @Override
     public void onRecordStopped() {
         Log.i(TAG, "record stop time: " + System.currentTimeMillis());
         runOnUiThread(new Runnable() {
@@ -570,17 +614,33 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     }
 
     @Override
+    public void onSectionRecording(long sectionDurationMs, long videoDurationMs, int sectionCount) {
+        Log.d(TAG, "sectionDurationMs: " + sectionDurationMs + "; videoDurationMs: " + videoDurationMs + "; sectionCount: " + sectionCount);
+        updateRecordingPercentageView(videoDurationMs);
+    }
+
+    @Override
     public void onSectionIncreased(long incDuration, long totalDuration, int sectionCount) {
-        Log.i(TAG, "section increased incDuration: " + incDuration + " totalDuration: " + totalDuration + " sectionCount: " + sectionCount);
-        onSectionCountChanged(sectionCount, totalDuration);
+        double videoSectionDuration = mDurationVideoStack.isEmpty() ? 0 : mDurationVideoStack.peek().doubleValue();
+        if ((videoSectionDuration + incDuration / mRecordSpeed) >= mRecordSetting.getMaxRecordDuration()) {
+            videoSectionDuration = mRecordSetting.getMaxRecordDuration();
+        }
+        Log.d(TAG, "videoSectionDuration: " + videoSectionDuration + "; incDuration: " + incDuration);
+        onSectionCountChanged(sectionCount, (long) videoSectionDuration);
     }
 
     @Override
     public void onSectionDecreased(long decDuration, long totalDuration, int sectionCount) {
-        Log.i(TAG, "section decreased decDuration: " + decDuration + " totalDuration: " + totalDuration + " sectionCount: " + sectionCount);
-        onSectionCountChanged(sectionCount, totalDuration);
         mSectionProgressBar.removeLastBreakPoint();
-        mDurationRecordStack.pop();
+        if (!mDurationVideoStack.isEmpty()) {
+            mDurationVideoStack.pop();
+        }
+        if (!mDurationRecordStack.isEmpty()) {
+            mDurationRecordStack.pop();
+        }
+        double currentDuration = mDurationVideoStack.isEmpty() ? 0 : mDurationVideoStack.peek().doubleValue();
+        onSectionCountChanged(sectionCount, (long) currentDuration);
+        updateRecordingPercentageView((long) currentDuration);
     }
 
     @Override
@@ -626,12 +686,27 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             @Override
             public void run() {
                 mProcessingDialog.dismiss();
+                int screenOrientation = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == getRequestedOrientation()) ? 0 : 1;
                 if (mIsEditVideo) {
-//                    VideoEditActivity.start(VideoRecordActivity.this, filePath);
-                    VideoFuEditActivity.start(VideoRecordActivity.this, filePath);
+                    VideoEditActivity.start(VideoRecordActivity.this, filePath, screenOrientation);
                 } else {
-                    PlaybackActivity.start(VideoRecordActivity.this, filePath);
+                    PlaybackActivity.start(VideoRecordActivity.this, filePath, screenOrientation);
                 }
+            }
+        });
+    }
+
+    private void updateRecordingPercentageView(long currentDuration) {
+        final int per = (int) (100 * currentDuration / mRecordSetting.getMaxRecordDuration());
+        final long curTime = System.currentTimeMillis();
+        if ((mLastRecordingPercentageViewUpdateTime != 0) && (curTime - mLastRecordingPercentageViewUpdateTime < 100)) {
+            return;
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mRecordingPercentageView.setText((per > 100 ? 100 : per) + "%");
+                mLastRecordingPercentageViewUpdateTime = curTime;
             }
         });
     }
@@ -672,7 +747,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             @Override
             public void run() {
                 mDeleteBtn.setEnabled(count > 0);
-                mConcatBtn.setEnabled(totalTime >= (RecordSettings.DEFAULT_MIN_RECORD_DURATION * mRecordSpeed));
+                mConcatBtn.setEnabled(totalTime >= (RecordSettings.DEFAULT_MIN_RECORD_DURATION));
             }
         });
     }
@@ -709,9 +784,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     }
 
     public void onSpeedClicked(View view) {
-        if (mSectionProgressBar.isRecorded()) {
-            ToastUtils.s(this, "已经拍摄视频，无法再设置拍摄倍数！");
-            return;
+        if (!mVideoEncodeSetting.IsConstFrameRateEnabled() || !mRecordSetting.IsRecordSpeedVariable()) {
+            if (mSectionProgressBar.isRecorded()) {
+                ToastUtils.s(this, "变帧率模式下，无法在拍摄中途修改拍摄倍数！");
+                return;
+            }
         }
 
         if (mSpeedTextView != null) {
@@ -740,9 +817,16 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                 break;
         }
 
-        mRecordSetting.setMaxRecordDuration((long) (RecordSettings.DEFAULT_MAX_RECORD_DURATION * mRecordSpeed));
         mShortVideoRecorder.setRecordSpeed(mRecordSpeed);
-        mSectionProgressBar.setFirstPointTime((long) (RecordSettings.DEFAULT_MIN_RECORD_DURATION * mRecordSpeed));
+        if (mRecordSetting.IsRecordSpeedVariable() && mVideoEncodeSetting.IsConstFrameRateEnabled()) {
+            mSectionProgressBar.setProceedingSpeed(mRecordSpeed);
+            mRecordSetting.setMaxRecordDuration(RecordSettings.DEFAULT_MAX_RECORD_DURATION);
+            mSectionProgressBar.setFirstPointTime(RecordSettings.DEFAULT_MIN_RECORD_DURATION);
+        } else {
+            mRecordSetting.setMaxRecordDuration((long) (RecordSettings.DEFAULT_MAX_RECORD_DURATION * mRecordSpeed));
+            mSectionProgressBar.setFirstPointTime((long) (RecordSettings.DEFAULT_MIN_RECORD_DURATION * mRecordSpeed));
+        }
+
         mSectionProgressBar.setTotalTime(this, mRecordSetting.getMaxRecordDuration());
     }
 

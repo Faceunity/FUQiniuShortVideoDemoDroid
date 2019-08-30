@@ -185,7 +185,12 @@ public class VideoDubActivity extends Activity implements PLRecordStateListener,
 
             @Override
             public void onSaveVideoFailed(final int errorCode) {
-                ToastUtils.s(VideoDubActivity.this, "拼接音频段失败: " + errorCode);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ToastUtils.s(VideoDubActivity.this, "拼接音频段失败，错误码：" + errorCode);
+                    }
+                });
             }
 
             @Override
@@ -280,13 +285,13 @@ public class VideoDubActivity extends Activity implements PLRecordStateListener,
     }
 
     @Override
-    public void onSectionRecording(long l, long l1, int i) {
-
+    public void onRecordStopped() {
+        mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);
     }
 
     @Override
-    public void onRecordStopped() {
-        mSectionProgressBar.setCurrentState(SectionProgressBar.State.PAUSE);
+    public void onSectionRecording(long sectionDurationMs, long videoDurationMs, int sectionCount) {
+
     }
 
     @Override

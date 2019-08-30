@@ -97,6 +97,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void onClickMixRecord(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(VideoMixRecordActivity.class);
+        }
+    }
+
     public void onClickTranscode(View v) {
         if (isPermissionOK()) {
             jumpToActivity(VideoTranscodeActivity.class);
@@ -127,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void onClickMultipleCompose(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(MultipleComposeActivity.class);
+        }
+    }
+
     public void onClickAR(View v) {
         if (isPermissionOK()) {
             jumpToActivity(ArRecordActivity.class);
@@ -142,6 +154,12 @@ public class MainActivity extends AppCompatActivity {
     public void onClickDraftBox(View v) {
         if (isPermissionOK()) {
             jumpToActivity(DraftBoxActivity.class);
+        }
+    }
+
+    public void onClickExternalMediaRecord(View v) {
+        if (isPermissionOK()) {
+            jumpToActivity(ExternalMediaRecordActivity.class);
         }
     }
 

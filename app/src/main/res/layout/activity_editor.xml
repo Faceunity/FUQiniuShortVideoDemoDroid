@@ -39,7 +39,8 @@
     <com.qiniu.pili.droid.shortvideo.demo.view.SquareRelativeLayout
         android:id="@+id/preview_wrapper"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title_layout">
 
         <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
             android:id="@+id/preview"
@@ -57,6 +58,14 @@
             android:background="#0000"
             android:onClick="onClickTogglePlayback"
             android:src="@mipmap/btn_pause" />
+
+        <com.qiniu.pili.droid.shortvideo.demo.view.FrameListView
+            android:id="@+id/frame_list_view"
+            android:layout_width="match_parent"
+            android:layout_alignTop="@id/preview"
+            android:layout_height="wrap_content">
+
+        </com.qiniu.pili.droid.shortvideo.demo.view.FrameListView>
 
         <LinearLayout
             android:id="@+id/speed_panel"
@@ -136,6 +145,19 @@
                 android:text="@string/speed_super_fast"
                 android:textColor="@color/speedTextNormal"
                 android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/range_speed_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:gravity="center"
+                android:onClick="onSpeedClicked"
+                android:padding="7dp"
+                android:text="@string/speed_range"
+                android:textColor="@color/speedTextNormal"
+                android:textSize="15sp" />
         </LinearLayout>
 
         <com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar
@@ -143,7 +165,7 @@
             android:layout_width="match_parent"
             android:layout_height="8dp"
             android:layout_alignBottom="@id/preview"
-            android:visibility="gone" />
+            android:visibility="visible" />
     </com.qiniu.pili.droid.shortvideo.demo.view.SquareRelativeLayout>
 
 
@@ -157,24 +179,17 @@
         android:id="@+id/paint_selector_panel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:visibility="gone"></com.qiniu.pili.droid.shortvideo.demo.view.PaintSelectorPanel>
 
     <LinearLayout
         android:id="@+id/editing_panel"
         android:layout_width="match_parent"
-        android:visibility="visible"
         android:layout_height="match_parent"
         android:orientation="vertical">
-
-        <com.faceunity.BeautyControlView
-            android:id="@+id/faceunity_control"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="invisible"
             android:layout_marginLeft="10dp"
             android:layout_marginTop="10dp"
             android:orientation="horizontal">
@@ -190,9 +205,9 @@
                 android:paddingLeft="8dp"
                 android:paddingRight="8dp"
                 android:paddingTop="5dp"
-                android:text="滤镜"
+                android:text="贴纸"
                 android:textColor="#fff"
-                android:textSize="15sp" />
+                android:textSize="15sp"/>
 
             <TextView
                 android:id="@+id/mvs_text"
@@ -259,20 +274,21 @@
                 android:textSize="15sp" />
 
             <TextView
-                android:id="@+id/effect_text"
+                android:id="@+id/multiple_audio_mixing_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="15dp"
                 android:background="@drawable/border_text_view"
                 android:clickable="true"
-                android:onClick="onClickShowEffect"
+                android:onClick="onClickMultipleAudioMixing"
                 android:paddingBottom="5dp"
                 android:paddingLeft="8dp"
                 android:paddingRight="8dp"
                 android:paddingTop="5dp"
-                android:text="特效"
+                android:text="多重混音"
                 android:textColor="#fff"
-                android:textSize="15sp" />
+                android:textSize="15sp"  />
+
         </LinearLayout>
 
         <com.qiniu.pili.droid.shortvideo.demo.view.ImageSelectorPanel
@@ -282,7 +298,7 @@
             android:layout_marginTop="10dp"
             android:layout_weight="1"
             android:background="@android:color/background_dark"
-            android:visibility="gone" />
+            android:visibility="gone"></com.qiniu.pili.droid.shortvideo.demo.view.ImageSelectorPanel>
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycler_view"

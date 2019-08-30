@@ -2,35 +2,19 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/background_dark"
     android:clipChildren="false">
 
-    <FrameLayout
-        android:background="@android:color/background_dark"
-        android:id="@+id/preview_container"
+    <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
+        android:id="@+id/preview"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" >
-
-        <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
-            android:id="@+id/preview"
-            android:layout_marginBottom="50dp"
-            android:layout_marginTop="50dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <com.faceunity.BeautyControlView
-            android:id="@+id/faceunity_control"
-            android:layout_gravity="bottom"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </FrameLayout>
+        android:layout_height="wrap_content" />
 
     <LinearLayout
         android:id="@+id/brightness_panel"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_alignBottom="@+id/preview_container"
-        android:layout_alignRight="@+id/preview_container"
+        android:layout_alignBottom="@+id/preview"
+        android:layout_alignRight="@+id/preview"
         android:orientation="vertical"
         android:padding="15dp">
 
@@ -43,7 +27,6 @@
             android:src="@mipmap/btn_brightness" />
 
         <com.qiniu.pili.droid.shortvideo.demo.view.VerticalSeekBar
-            android:visibility="gone"
             android:id="@+id/adjust_brightness"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
@@ -53,10 +36,10 @@
     </LinearLayout>
 
     <LinearLayout
-        android:visibility="gone"
+        android:id="@+id/ll_speed"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/preview_container"
+        android:layout_alignBottom="@+id/preview"
         android:layout_marginBottom="15dp"
         android:layout_marginLeft="60dp"
         android:layout_marginRight="60dp"
@@ -131,6 +114,13 @@
             android:textSize="15sp" />
     </LinearLayout>
 
+    <com.faceunity.beautycontrolview.BeautyControlView
+        android:id="@+id/faceunity_control"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/ll_speed"
+        />
+
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -154,7 +144,6 @@
             android:layout_height="25dp"
             android:layout_marginLeft="10dp"
             android:clickable="true"
-            android:visibility="gone"
             android:onClick="onScreenRotation"
             android:src="@mipmap/btn_screen_rotation" />
 
@@ -186,9 +175,10 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/bottom_control_panel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/preview_container"
+        android:layout_below="@id/preview"
         android:background="@android:color/background_dark"
         android:gravity="center_horizontal"
         android:orientation="vertical">
@@ -236,19 +226,10 @@
         </LinearLayout>
 
         <LinearLayout
-            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             android:orientation="horizontal">
-
-            <ImageView
-                android:id="@+id/btn_camera_effect"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_weight="1"
-                android:scaleType="fitCenter"
-                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/audio_mix_button"
@@ -257,6 +238,15 @@
                 android:layout_weight="1"
                 android:onClick="onClickAddMixAudio"
                 android:src="@mipmap/btn_mix_audio" />
+
+            <TextView
+                android:id="@+id/recording_percentage"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="0%"
+                android:textColor="#FFFFFF"/>
 
             <ImageView
                 android:id="@+id/save_to_draft_button"
@@ -267,7 +257,5 @@
                 android:src="@drawable/ic_draft" />
 
         </LinearLayout>
-
     </LinearLayout>
-
 </RelativeLayout>
