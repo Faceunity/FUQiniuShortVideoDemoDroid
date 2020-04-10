@@ -1,26 +1,24 @@
 package com.qiniu.pili.droid.shortvideo.demo.activity;
 
-import com.pili.pldroid.player.PLOnCompletionListener;
-import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
-import com.qiniu.pili.droid.shortvideo.PLExternalMediaRecorder;
-import com.qiniu.pili.droid.shortvideo.PLExternalRecordStateListener;
-
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import com.pili.pldroid.player.AVOptions;
+import com.pili.pldroid.player.PLOnAudioFrameListener;
+import com.pili.pldroid.player.PLOnCompletionListener;
+import com.pili.pldroid.player.PLOnVideoFrameListener;
+import com.pili.pldroid.player.widget.PLVideoTextureView;
+import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
+import com.qiniu.pili.droid.shortvideo.PLExternalMediaRecorder;
+import com.qiniu.pili.droid.shortvideo.PLExternalRecordStateListener;
 import com.qiniu.pili.droid.shortvideo.PLRecordSetting;
 import com.qiniu.pili.droid.shortvideo.PLVideoEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.demo.R;
-
-import com.pili.pldroid.player.AVOptions;
-import com.pili.pldroid.player.PLOnAudioFrameListener;
-import com.pili.pldroid.player.PLOnVideoFrameListener;
-import com.pili.pldroid.player.widget.PLVideoTextureView;
 
 import java.io.IOException;
 
