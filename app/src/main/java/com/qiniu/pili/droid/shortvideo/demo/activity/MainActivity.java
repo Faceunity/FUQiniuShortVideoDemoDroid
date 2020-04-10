@@ -11,9 +11,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.faceunity.nama.FURenderer;
 import com.qiniu.pili.droid.shortvideo.demo.BuildConfig;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 import com.qiniu.pili.droid.shortvideo.demo.utils.PermissionChecker;
+import com.qiniu.pili.droid.shortvideo.demo.utils.PreferenceUtil;
 import com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings;
 import com.qiniu.pili.droid.shortvideo.demo.utils.ToastUtils;
 
@@ -34,6 +36,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        String isOn = PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_ISON);
+        if ("true".equals(isOn)) {
+            FURenderer.initFURenderer(this);
+        }
 
         TextView versionInfoTextView = (TextView) findViewById(R.id.VersionInfoTextView);
         String info = "版本号：" + getVersionDescription() + "，编译时间：" + getBuildTimeDescription();

@@ -8,7 +8,7 @@ import android.widget.ImageView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
-import com.faceunity.beautycontrolview.entity.Effect;
+import com.faceunity.nama.entity.Effect;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 
 import java.util.List;
@@ -30,7 +30,7 @@ public class EffetsAdapter extends BaseQuickAdapter<Effect, BaseViewHolder> {
 
     @Override
     protected void convert(final BaseViewHolder helper, Effect item) {
-        helper.setText(R.id.record_text, item.description());
+        helper.setText(R.id.record_text, item.getDescription());
         helper.getView(R.id.record_rootView).setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -42,7 +42,7 @@ public class EffetsAdapter extends BaseQuickAdapter<Effect, BaseViewHolder> {
             }
         });
         ImageView circleImageView = helper.getView(R.id.record_image);
-        circleImageView.setBackgroundResource(item.resId());
+        circleImageView.setBackgroundResource(item.getIconId());
     }
 
     public void setItemTouchListener(ItemTouchListener itemTouchListener) {

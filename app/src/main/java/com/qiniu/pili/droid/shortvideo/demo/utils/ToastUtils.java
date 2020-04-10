@@ -3,8 +3,6 @@ package com.qiniu.pili.droid.shortvideo.demo.utils;
 import android.content.Context;
 import android.widget.Toast;
 
-import com.qiniu.pili.droid.shortvideo.PLErrorCode;
-
 import static com.qiniu.pili.droid.shortvideo.PLErrorCode.ERROR_LOW_MEMORY;
 import static com.qiniu.pili.droid.shortvideo.PLErrorCode.ERROR_MULTI_CODEC_WRONG;
 import static com.qiniu.pili.droid.shortvideo.PLErrorCode.ERROR_MUXER_START_FAILED;

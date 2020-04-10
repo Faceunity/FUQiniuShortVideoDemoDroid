@@ -114,7 +114,7 @@
             android:textSize="15sp" />
     </LinearLayout>
 
-    <com.faceunity.beautycontrolview.BeautyControlView
+    <com.faceunity.nama.ui.BeautyControlView
         android:id="@+id/faceunity_control"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -248,13 +248,13 @@
                 android:text="0%"
                 android:textColor="#FFFFFF"/>
 
-            <ImageView
-                android:id="@+id/save_to_draft_button"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_weight="1"
-                android:onClick="onClickSaveToDraft"
-                android:src="@drawable/ic_draft" />
+            <!--            <ImageView-->
+            <!--                android:id="@+id/save_to_draft_button"-->
+            <!--                android:layout_width="30dp"-->
+            <!--                android:layout_height="30dp"-->
+            <!--                android:layout_weight="1"-->
+            <!--                android:onClick="onClickSaveToDraft"-->
+            <!--                android:src="@drawable/ic_draft" />-->
 
         </LinearLayout>
     </LinearLayout>

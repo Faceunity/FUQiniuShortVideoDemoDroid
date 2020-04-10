@@ -25,8 +25,8 @@ import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.faceunity.beautycontrolview.BeautyControlView;
-import com.faceunity.beautycontrolview.FURenderer;
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.ui.BeautyControlView;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
@@ -43,7 +43,6 @@ import com.qiniu.pili.droid.shortvideo.PLVideoEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLVideoFilterListener;
 import com.qiniu.pili.droid.shortvideo.PLVideoFrame;
 import com.qiniu.pili.droid.shortvideo.PLVideoSaveListener;
-import com.qiniu.pili.droid.shortvideo.demo.MyApp;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 import com.qiniu.pili.droid.shortvideo.demo.utils.Config;
 import com.qiniu.pili.droid.shortvideo.demo.utils.GetPathFromUri;
@@ -106,12 +105,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private ViewGroup mBottomControlPanel;
 
     private FURenderer mFURenderer;
-    private String isOn;
-    //    private int cameraId[], mInputProp;
-    private int cameraId;
-    private int mInputProp;
-    private BeautyControlView mFaceunityControlView;
-    // 原始的相机数据
+    private int mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private byte[] mCameraData;
 
     private int mFocusIndicatorX;
@@ -238,42 +232,44 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         mSectionProgressBar.setProceedingSpeed(mRecordSpeed);
         mSectionProgressBar.setTotalTime(this, mRecordSetting.getMaxRecordDuration());
 
-        cameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
-        mInputProp = getCameraOrientation(cameraId);
-        Log.d("mInputProp", mInputProp + "");
 
-        isOn = PreferenceUtil.getString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
-
-        mFaceunityControlView = (BeautyControlView) findViewById(R.id.faceunity_control);
-
-        if (isOn.equals("false")) {
-            mFaceunityControlView.setVisibility(View.GONE);
+        String isOn = PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_ISON);
+        BeautyControlView beautyControlView = (BeautyControlView) findViewById(R.id.faceunity_control);
+        if ("true".equals(isOn)) {
+            if (beautyControlView != null) {
+                mFURenderer = new FURenderer
+                        .Builder(this)
+                        .setInputTextureType(FURenderer.INPUT_2D_TEXTURE)
+                        .setCameraType(mCameraId)
+                        .setInputImageOrientation(FURenderer.getCameraOrientation(mCameraId))
+                        .build();
+                beautyControlView.setOnFaceUnityControlListener(mFURenderer);
+            }
         } else {
-            mFURenderer = new FURenderer
-                    .Builder(this)
-                    .inputProp(mInputProp)
-                    .inputImageOrientation(mInputProp)
-//                .inputProp(cameraId[1])
-                    .build();
-            mFaceunityControlView.setOnFaceUnityControlListener(mFURenderer);
+            beautyControlView.setVisibility(View.GONE);
         }
 
         mShortVideoRecorder.setVideoFilterListener(new PLVideoFilterListener() {
 
             @Override
             public void onSurfaceCreated() {
-                if (mFURenderer != null)
+                Log.d(TAG, "onSurfaceCreated: ");
+                if (mFURenderer != null) {
                     mFURenderer.loadItems();
+                }
             }
 
             @Override
             public void onSurfaceChanged(int width, int height) {
+                Log.d(TAG, "onSurfaceChanged() width = [" + width + "], height = [" + height + "]");
             }
 
             @Override
             public void onSurfaceDestroy() {
-                if (mFURenderer != null)
+                Log.d(TAG, "onSurfaceDestroy: ");
+                if (mFURenderer != null) {
                     mFURenderer.destroyItems();
+                }
                 mCameraData = null;
             }
 
@@ -291,8 +287,8 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             public int onDrawFrame(int texId, int texWidth, int texHeight, long timeStampNs, float[] transformMatrix) {
                 int id;
                 if (mCameraData != null && mFURenderer != null) {
-//                    id = mFURenderer.onDrawFrameSingleInputTex(texId, texWidth, texHeight);
-                    id = mFURenderer.onDrawFrameFBODoubleInput(mCameraData, texId, texWidth, texHeight);
+                    // 参数 mCameraData = null 表示单输出，否则使用双输入
+                    id = mFURenderer.onDrawFrameDualInputFBO(mCameraData, texId, texWidth, texHeight);
                 } else {
                     id = texId;
                 }
@@ -318,8 +314,9 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             @Override
             public boolean onPreviewFrame(final byte[] data, int width, int height, int rotation, int fmt, long tsInNanoTime) {
                 mCameraData = data;
-//                Log.i(TAG, "onPreviewFrame: width:" + width + ", height:" + height + ", rotation:"
+//                Log.v(TAG, "onPreviewFrame: width:" + width + ", height:" + height + ", rotation:"
 //                        + rotation + ", fmt:" + fmt + ", time:" + tsInNanoTime + ", t:" + Thread.currentThread().getId());
+//                onPreviewFrame: width:960, height:720, rotation:270, fmt:825382478, time:195631514429002, t:1
                 return false;
             }
         });
@@ -392,13 +389,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         if (mOrientationListener.canDetectOrientation()) {
             mOrientationListener.enable();
         }
-    }
-
-    public int getCameraOrientation(int cameraId) {
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        Camera.getCameraInfo(cameraId, info);
-        Log.d("orientation", info.orientation + "");
-        return info.orientation;
     }
 
     private int getScreenRotation(int orientation) {
@@ -501,17 +491,13 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
     public void onClickSwitchCamera(View v) {
         mShortVideoRecorder.switchCamera();
-        if (cameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            cameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+        if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
         } else {
-            cameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+            mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
         }
-        mInputProp = getCameraOrientation(cameraId);
-        Log.d("mInputProp", mInputProp + "");
-
         if (mFURenderer != null) {
-            mFURenderer.setInputProp(mInputProp);
-            mFURenderer.setCurrentCameraType(cameraId);
+            mFURenderer.onCameraChanged(mCameraId, FURenderer.getCameraOrientation(mCameraId));
         }
         mFocusIndicator.focusCancel();
     }

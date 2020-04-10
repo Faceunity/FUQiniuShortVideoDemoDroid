@@ -8,7 +8,6 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 
-import com.qiniu.pili.droid.shortvideo.demo.MyApp;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 import com.qiniu.pili.droid.shortvideo.demo.utils.PreferenceUtil;
 
@@ -23,8 +22,8 @@ public class NeedFaceUnityAcct extends AppCompatActivity {
         setContentView(R.layout.act_faceunity);
 
         final Button button = (Button) findViewById(R.id.btn_set);
-        String isOpen = PreferenceUtil.getString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
-        if (TextUtils.isEmpty(isOpen) || isOpen.equals("false")) {
+        String isOpen = PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_ISON);
+        if (TextUtils.isEmpty(isOpen) || "false".equals(isOpen)) {
             isOn = false;
         } else {
             isOn = true;
@@ -39,12 +38,12 @@ public class NeedFaceUnityAcct extends AppCompatActivity {
             }
         });
 
-        Button btn_to_main = (Button) findViewById(R.id.btn_to_main);
-        btn_to_main.setOnClickListener(new View.OnClickListener() {
+        Button btnToMain = (Button) findViewById(R.id.btn_to_main);
+        btnToMain.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(NeedFaceUnityAcct.this, MainActivity.class);
-                PreferenceUtil.persistString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON,
+                PreferenceUtil.persistString(NeedFaceUnityAcct.this, PreferenceUtil.KEY_FACEUNITY_ISON,
                         isOn + "");
                 startActivity(intent);
                 finish();

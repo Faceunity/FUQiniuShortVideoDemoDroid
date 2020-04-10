@@ -5,7 +5,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 
 import com.qiniu.pili.droid.shortvideo.demo.R;
-import com.qiniu.pili.droid.shortvideo.demo.utils.Config;
 
 import java.io.IOException;
 

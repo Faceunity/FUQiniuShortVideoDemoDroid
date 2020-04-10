@@ -31,9 +31,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.faceunity.beautycontrolview.EffectEnum;
-import com.faceunity.beautycontrolview.FURenderer;
-import com.faceunity.beautycontrolview.entity.Effect;
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.entity.Effect;
+import com.faceunity.nama.entity.EffectEnum;
 import com.qiniu.pili.droid.shortvideo.PLBuiltinFilter;
 import com.qiniu.pili.droid.shortvideo.PLImageView;
 import com.qiniu.pili.droid.shortvideo.PLMediaFile;
@@ -46,13 +46,11 @@ import com.qiniu.pili.droid.shortvideo.PLVideoEditSetting;
 import com.qiniu.pili.droid.shortvideo.PLVideoFilterListener;
 import com.qiniu.pili.droid.shortvideo.PLVideoSaveListener;
 import com.qiniu.pili.droid.shortvideo.PLWatermarkSetting;
-import com.qiniu.pili.droid.shortvideo.demo.MyApp;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 import com.qiniu.pili.droid.shortvideo.demo.fusdk.EffetsAdapter;
 import com.qiniu.pili.droid.shortvideo.demo.fusdk.FuSDKManager;
 import com.qiniu.pili.droid.shortvideo.demo.utils.Config;
 import com.qiniu.pili.droid.shortvideo.demo.utils.GetPathFromUri;
-import com.qiniu.pili.droid.shortvideo.demo.utils.PreferenceUtil;
 import com.qiniu.pili.droid.shortvideo.demo.utils.ToastUtils;
 import com.qiniu.pili.droid.shortvideo.demo.view.AudioMixSettingDialog;
 import com.qiniu.pili.droid.shortvideo.demo.view.CustomProgressDialog;
@@ -80,6 +78,9 @@ import java.util.TimerTask;
 
 import static com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings.RECORD_SPEED_ARRAY;
 
+/**
+ * 暂时没有对接视频编辑加美颜贴纸，如有需要请联系技术支持
+ */
 public class VideoEditActivity extends Activity implements PLVideoSaveListener {
     private static final String TAG = "VideoEditActivity";
     private static final String MP4_PATH = "MP4_PATH";
@@ -194,7 +195,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
 
         mPreviousOrientation = getIntent().getIntExtra(PREVIOUS_ORIENTATION, 1);
 
-        isOn = PreferenceUtil.getString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
+//        isOn = PreferenceUtil.getString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
 
         initPreviewView();
         initTextSelectorPanel();
@@ -208,7 +209,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
 
         TextView filters_text = findViewById(R.id.filters_text);
         TextView mvs_text = findViewById(R.id.mvs_text);
-        if (isOn.equals("true")) {
+        if ("true".equals(isOn)) {
             mFuSDKManager = new FuSDKManager(getBaseContext());
         } else {
             filters_text.setVisibility(View.GONE);
@@ -312,7 +313,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                     Log.e(TAG, "onSurfaceCreated ");
                     if (mFuSDKManager != null) {
                         mFuSDKManager.setupPreviewFilterEngine();
-                        mFuSDKManager.getPreviewFilterEngine().loadItems();
+                        mFuSDKManager.getPreviewFilterEngine().onSurfaceCreated();
                     }
                 }
 
@@ -325,7 +326,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                 public void onSurfaceDestroy() {
                     if (mFuSDKManager != null) {
                         if (mFuSDKManager.getPreviewFilterEngine() != null) {
-                            mFuSDKManager.getPreviewFilterEngine().destroyItems();
+                            mFuSDKManager.getPreviewFilterEngine().onSurfaceDestroyed();
                         }
                         synchronized (VideoEditActivity.this) {
                             mFuSDKManager.destroyPreviewFilterEngine();
@@ -365,12 +366,11 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                     synchronized (VideoEditActivity.this) {
                         if (mFuSDKManager.getPreviewFilterEngine() != null) {
                             if (model != null) {
-                                Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + "    model.getMagicCode():" + model.getMagicCode().bundleName());
+//                                Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + "    model.getMagicCode():" + model.getMagicCode().bundleName());
                                 FURenderer preRender = mFuSDKManager.getPreviewFilterEngine();
                                 preRender.onEffectSelected(model.getMagicCode());
-                                int id = preRender.onDrawFrameSingleInputTex(texId, texWidth, texHeight);
-                                Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + " model:" + model + " texId:" + id + "--width="
-                                        + texWidth + "--height=" + texHeight);
+                                int id = preRender.onDrawFrameSingleInput(texId, texWidth, texHeight);
+//                                Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + " model:" + model + " texId:" + id + "--width=" + texWidth + "--height=" + texHeight);
                                 return id;
                             } else {
                                 Log.i(TAG, "model:" + model + "    curPos:" + curPos);
@@ -969,8 +969,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
     /// ========================= FuSDK 相关 ========================= ///
     private void resetEffects() {
         mSectionProgressBar.reset();
-        if (mFuSDKManager != null)
+        if (mFuSDKManager != null) {
             mFuSDKManager.reset();
+        }
         mShortVideoEditor.seekTo(0);
         mIsVideoPlayCompleted = false;
         pausePlayback();
@@ -1195,7 +1196,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                 startTimeMs = 0;
                 if (mFuSDKManager != null) {
                     mFuSDKManager.setupSaveFilterEngine();
-                    mFuSDKManager.getSaveFilterEngine().loadItems();
+                    mFuSDKManager.getSaveFilterEngine().onSurfaceCreated();
                 }
             }
 
@@ -1240,8 +1241,8 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                     if (magicModel != null) {
                         FURenderer saveRunder = mFuSDKManager.getSaveFilterEngine();
                         saveRunder.onEffectSelected(magicModel.getMagicCode());
-                        Log.i(TAG, "保存编辑视屏onDrawFrame" + magicModel.getMagicCode());
-                        return saveRunder.onDrawFrameSingleInputTex(texId, texWidth, texHeight);
+//                        Log.i(TAG, "保存编辑视屏onDrawFrame" + magicModel.getMagicCode());
+                        return saveRunder.onDrawFrameSingleInput(texId, texWidth, texHeight);
                     } else {
                         Log.i(TAG, "保存编辑视屏onDrawFrame是空");
                     }

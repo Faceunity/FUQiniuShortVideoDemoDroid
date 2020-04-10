@@ -3,11 +3,12 @@ package com.qiniu.pili.droid.shortvideo.demo.fusdk;
 
 import android.content.Context;
 
-import com.faceunity.beautycontrolview.FURenderer;
-import com.faceunity.beautycontrolview.entity.Effect;
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.entity.Effect;
 
 import java.util.ArrayList;
 
+// TODO: 2020/4/3 0003 编辑时 加上 Faceunity 美颜贴纸
 public class FuSDKManager {
     // 特效信息集合
     private volatile ArrayList<MagicModel> mMagicModelsList = new ArrayList<>();
@@ -121,7 +122,7 @@ public class FuSDKManager {
         // 美颜处理
         FURenderer filterEngine = new FURenderer
                 .Builder(mContext)
-                .inputTextureType(0) // this value is from com.faceunity.wrapper.faceunity.FU_ADM_FLAG_ENABLE_READBACK
+                .setInputTextureType(FURenderer.INPUT_2D_TEXTURE) // this value is from com.faceunity.wrapper.faceunity.FU_ADM_FLAG_ENABLE_READBACK
                 .build();
 
         // 设置是否输出原始图片朝向 false: 图像被转正后输出
