@@ -1,17 +1,22 @@
 package com.qiniu.pili.droid.shortvideo.demo.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -26,7 +31,9 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.ui.BeautyControlView;
+import com.faceunity.nama.IFURenderer;
+import com.faceunity.nama.ui.FaceUnityView;
+import com.faceunity.nama.utils.CameraUtils;
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
 import com.qiniu.pili.droid.shortvideo.PLCameraPreviewListener;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
@@ -35,6 +42,7 @@ import com.qiniu.pili.droid.shortvideo.PLDraft;
 import com.qiniu.pili.droid.shortvideo.PLDraftBox;
 import com.qiniu.pili.droid.shortvideo.PLFaceBeautySetting;
 import com.qiniu.pili.droid.shortvideo.PLFocusListener;
+import com.qiniu.pili.droid.shortvideo.PLFourCC;
 import com.qiniu.pili.droid.shortvideo.PLMicrophoneSetting;
 import com.qiniu.pili.droid.shortvideo.PLRecordSetting;
 import com.qiniu.pili.droid.shortvideo.PLRecordStateListener;
@@ -44,6 +52,8 @@ import com.qiniu.pili.droid.shortvideo.PLVideoFilterListener;
 import com.qiniu.pili.droid.shortvideo.PLVideoFrame;
 import com.qiniu.pili.droid.shortvideo.PLVideoSaveListener;
 import com.qiniu.pili.droid.shortvideo.demo.R;
+import com.qiniu.pili.droid.shortvideo.demo.profile.CSVUtils;
+import com.qiniu.pili.droid.shortvideo.demo.profile.Constant;
 import com.qiniu.pili.droid.shortvideo.demo.utils.Config;
 import com.qiniu.pili.droid.shortvideo.demo.utils.GetPathFromUri;
 import com.qiniu.pili.droid.shortvideo.demo.utils.PreferenceUtil;
@@ -53,14 +63,21 @@ import com.qiniu.pili.droid.shortvideo.demo.view.CustomProgressDialog;
 import com.qiniu.pili.droid.shortvideo.demo.view.FocusIndicator;
 import com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Stack;
 
 import static com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings.RECORD_SPEED_ARRAY;
+import static com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings.chooseCameraFacingId;
 
-public class VideoRecordActivity extends Activity implements PLRecordStateListener, PLVideoSaveListener, PLFocusListener {
+public class VideoRecordActivity extends AppCompatActivity implements PLRecordStateListener,
+        PLVideoSaveListener, PLFocusListener, SensorEventListener {
     private static final String TAG = "VideoRecordActivity";
 
     public static final String PREVIEW_SIZE_RATIO = "PreviewSizeRatio";
@@ -103,10 +120,14 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     private PLAudioEncodeSetting mAudioEncodeSetting;
     private PLFaceBeautySetting mFaceBeautySetting;
     private ViewGroup mBottomControlPanel;
+    private TextView mTvFPS;
 
     private FURenderer mFURenderer;
+    private CSVUtils mCSVUtils;
     private int mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    private int deviceRotation = 90;
     private byte[] mCameraData;
+    private SensorManager mSensorManager;
 
     private int mFocusIndicatorX;
     private int mFocusIndicatorY;
@@ -139,6 +160,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         mAdjustBrightnessSeekBar = (SeekBar) findViewById(R.id.adjust_brightness);
         mBottomControlPanel = (ViewGroup) findViewById(R.id.bottom_control_panel);
         mRecordingPercentageView = (TextView) findViewById(R.id.recording_percentage);
+        mTvFPS = findViewById(R.id.tvFPS);
 
         mProcessingDialog = new CustomProgressDialog(this);
         mProcessingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -150,7 +172,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
         mShortVideoRecorder = new PLShortVideoRecorder();
         mShortVideoRecorder.setRecordStateListener(this);
-        mShortVideoRecorder.setFocusListener(this);
 
         mRecordSpeed = RECORD_SPEED_ARRAY[2];
         mSpeedTextView = (TextView) findViewById(R.id.normal_speed_text);
@@ -224,7 +245,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                 ToastUtils.s(this, getString(R.string.toast_draft_recover_success));
             } else {
                 onSectionCountChanged(0, 0);
-                mSectionProgressBar.setFirstPointTime(RecordSettings.DEFAULT_MIN_RECORD_DURATION);
+                mSectionProgressBar.setFirstPointTime(RecordSettings.DEFAULT_MIN_RECORD_DURATION );
                 ToastUtils.s(this, getString(R.string.toast_draft_recover_fail));
             }
         }
@@ -234,29 +255,69 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
 
         String isOn = PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_ISON);
-        BeautyControlView beautyControlView = (BeautyControlView) findViewById(R.id.faceunity_control);
+        FaceUnityView beautyControlView = findViewById(R.id.faceunity_control);
         if ("true".equals(isOn)) {
             if (beautyControlView != null) {
                 mFURenderer = new FURenderer
                         .Builder(this)
-                        .setInputTextureType(FURenderer.INPUT_2D_TEXTURE)
-                        .setCameraType(mCameraId)
-                        .setInputImageOrientation(FURenderer.getCameraOrientation(mCameraId))
+                        .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
+                        .setCameraFacing(mCameraId)
+                        .setInputImageOrientation(CameraUtils.getCameraOrientation(mCameraId))
+                        .setRunBenchmark(true)
+                        .setOnDebugListener(new FURenderer.OnDebugListener() {
+                            @Override
+                            public void onFpsChanged(final double fps, double callTime) {
+                                Log.d(TAG, "onFpsChanged FPS: " + String.format("%.2f", fps) + ", callTime: " + String.format("%.2f", callTime));
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mTvFPS.setText(String.format("FPS: %.2f", fps));
+                                    }
+                                });
+                            }
+                        })
+                        .setOnTrackStatusChangedListener(new FURenderer.OnTrackStatusChangedListener() {
+                            @Override
+                            public void onTrackStatusChanged(int type, int status) {
+                                Log.e(TAG, "onTrackStatusChanged: 人脸数: " + status);
+                            }
+                        })
                         .build();
-                beautyControlView.setOnFaceUnityControlListener(mFURenderer);
+                beautyControlView.setModuleManager(mFURenderer);
+                mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+                Sensor sensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
             }
         } else {
             beautyControlView.setVisibility(View.GONE);
         }
-
+        // 输入类型 1 双输入 2 单texture 3 单buffer
+        final int inputType = 2;
+        mShortVideoRecorder.setCameraPreviewListener(new PLCameraPreviewListener() {
+            @Override
+            public boolean onPreviewFrame(byte[] bytes, int i, int i1, int i2, int i3, long l) {
+                Log.e(TAG, "onPreviewFrame" + " width " + i + " height " + i1 + " fmt " + i3 + " rotation " + i2 + " PLFourCC " + PLFourCC.FOURCC_NV21);
+                if (mCameraData == null) {
+                    mCameraData = new byte[bytes.length];
+                }
+                System.arraycopy(bytes, 0, mCameraData, 0, bytes.length);
+                return true;
+            }
+        });
         mShortVideoRecorder.setVideoFilterListener(new PLVideoFilterListener() {
 
             @Override
             public void onSurfaceCreated() {
                 Log.d(TAG, "onSurfaceCreated: ");
+                initCsvUtil(VideoRecordActivity.this);
                 if (mFURenderer != null) {
-                    mFURenderer.loadItems();
+                    if (inputType == 2 || inputType == 3) {
+                       mFURenderer.onSurfaceCreated();
+                    }else  {
+                        mFURenderer.loadItems();
+                    }
                 }
+                mCameraData = null;
             }
 
             @Override
@@ -267,59 +328,59 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
             @Override
             public void onSurfaceDestroy() {
                 Log.d(TAG, "onSurfaceDestroy: ");
-                if (mFURenderer != null) {
+                if (mCSVUtils != null) {
+                    mCSVUtils.close();
+                }
+                if (inputType == 2 || inputType == 3) {
+                    mFURenderer.onSurfaceDestroyed();
+                }else  {
                     mFURenderer.destroyItems();
                 }
-                mCameraData = null;
             }
 
             /**
              * 绘制帧时触发 GL线程回调
              *
              * @param texId           待渲染的 SurfaceTexture 对象的 texture ID
-             * @param texWidth        绘制的 surface 宽度
-             * @param texHeight       绘制的 surface 高度
+             * @param width           绘制的 surface 宽度
+             * @param height          绘制的 surface 高度
              * @param timeStampNs     该帧的时间戳，单位 Ns
              * @param transformMatrix 一般为单位矩阵，除非返回的纹理类型为 OES
              * @return 新创建的制定给 SurfaceTexuture 对象的 texture ID，类型必须为 GL_TEXTURE_2D
              */
             @Override
-            public int onDrawFrame(int texId, int texWidth, int texHeight, long timeStampNs, float[] transformMatrix) {
-                int id;
-                if (mCameraData != null && mFURenderer != null) {
-                    // 参数 mCameraData = null 表示单输出，否则使用双输入
-                    id = mFURenderer.onDrawFrameDualInputFBO(mCameraData, texId, texWidth, texHeight);
-                } else {
-                    id = texId;
+            public int onDrawFrame(int texId, int width, int height, long timeStampNs, float[] transformMatrix) {
+                if (mFURenderer == null || mCameraData == null) {
+                    // 参数 mCameraNv21 = null 表示单输出，否则使用双输入
+                    return texId;
                 }
-//                Log.d(TAG, "onDrawFrame: texId:" + texId + ", fuTexId:" + id + ", texWidth:" + texWidth + ", texHeight:"
-//                        + texHeight + ", time:" + timeStampNs + ", t:" + Thread.currentThread().getId() + ", mtx:" + Arrays.toString(transformMatrix));
-                // onDrawFrame: texId:2, fuTexId:4, texWidth:720, texHeight:960, time:147123248305000, t:296
-                return id;
+                Log.e(TAG, "onDrawFrame: mCameraData " + mCameraData.length);
+
+                int fuTexId = 0;
+                long start = System.nanoTime();
+                if (inputType == 1) {
+                    //双输入
+                    fuTexId = mFURenderer.onDrawFrameDualInputFBO(mCameraData, texId, width, height);
+                }else if (inputType == 2) {
+                    //单输入 texture
+                    fuTexId = mFURenderer.onDrawFrameSingleInput(texId, width, height);
+                }else {
+                    // 单输入 buffer
+                    byte[] nv21Data = Arrays.copyOf(mCameraData, mCameraData.length);
+                    fuTexId = mFURenderer.onDrawFrameSingleInput(nv21Data, height, width, IFURenderer.INPUT_FORMAT_NV21_BUFFER);
+                }
+                long renderTime = System.nanoTime() - start;
+
+                if (mCSVUtils != null) {
+                    mCSVUtils.writeCsv(null, renderTime);
+                }
+                Log.d(TAG, "onDrawFrame: texId:" + texId + ", fuTexId:" + fuTexId + ", texWidth:" + width + ", texHeight:"
+                        + height + ", time:" + timeStampNs + ", t:" + Thread.currentThread().getId() + ", mtx:" + Arrays.toString(transformMatrix));
+
+                return fuTexId;
             }
         });
 
-        mShortVideoRecorder.setCameraPreviewListener(new PLCameraPreviewListener() {
-
-            /**
-             * 当预览画面有视频帧待渲染时触发 主线程回调
-             * @param data 视频帧数据
-             * @param width 视频帧宽度
-             * @param height 视频帧高度
-             * @param rotation 视频角度，顺时针 0/90/180/270 度
-             * @param fmt 视频格式，在 PLFourCC 类中定, 这里是NV21
-             * @param tsInNanoTime 该帧的时间戳，单位为 ns
-             *
-             */
-            @Override
-            public boolean onPreviewFrame(final byte[] data, int width, int height, int rotation, int fmt, long tsInNanoTime) {
-                mCameraData = data;
-//                Log.v(TAG, "onPreviewFrame: width:" + width + ", height:" + height + ", rotation:"
-//                        + rotation + ", fmt:" + fmt + ", time:" + tsInNanoTime + ", t:" + Thread.currentThread().getId());
-//                onPreviewFrame: width:960, height:720, rotation:270, fmt:825382478, time:195631514429002, t:1
-                return false;
-            }
-        });
 
         mRecordBtn.setOnTouchListener(new View.OnTouchListener() {
             private long mSectionBeginTSMs;
@@ -345,7 +406,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                         mDurationRecordStack.push(new Long(totalRecordDurationMs));
                         mDurationVideoStack.push(new Double(totalVideoDurationMs));
                         if (mRecordSetting.IsRecordSpeedVariable()) {
-                            Log.d(TAG, "SectionRecordDuration: " + sectionRecordDurationMs + "; sectionVideoDuration: " + sectionVideoDurationMs + "; totalVideoDurationMs: " + totalVideoDurationMs + "Section count: " + mDurationVideoStack.size());
+                            Log.d(TAG,"SectionRecordDuration: " + sectionRecordDurationMs + "; sectionVideoDuration: " + sectionVideoDurationMs + "; totalVideoDurationMs: " + totalVideoDurationMs + "Section count: " + mDurationVideoStack.size());
                             mSectionProgressBar.addBreakPointTime((long) totalVideoDurationMs);
                         } else {
                             mSectionProgressBar.addBreakPointTime(totalRecordDurationMs);
@@ -383,12 +444,32 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
                 int rotation = getScreenRotation(orientation);
                 if (!mSectionProgressBar.isRecorded() && !mSectionBegan) {
                     mVideoEncodeSetting.setRotationInMetadata(rotation);
+                    if (null != mFURenderer && deviceRotation != rotation) {
+                        mFURenderer.onDeviceOrientationChanged((rotation + 180) % 360);
+                        deviceRotation = rotation;
+                    }
                 }
             }
         };
         if (mOrientationListener.canDetectOrientation()) {
             mOrientationListener.enable();
         }
+    }
+
+    private void initCsvUtil(Context context) {
+        mCSVUtils = new CSVUtils(context);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
+        String dateStrDir = format.format(new Date(System.currentTimeMillis()));
+        dateStrDir = dateStrDir.replaceAll("-", "").replaceAll("_", "");
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault());
+        String dateStrFile = df.format(new Date());
+        String filePath = Constant.filePath + dateStrDir + File.separator + "excel-" + dateStrFile + ".csv";
+        Log.d(TAG, "initLog: CSV file path:" + filePath);
+        StringBuilder headerInfo = new StringBuilder();
+        headerInfo.append("version：").append(FURenderer.getVersion()).append(CSVUtils.COMMA)
+                .append("机型：").append(android.os.Build.MANUFACTURER).append(android.os.Build.MODEL)
+                .append("处理方式：Texture").append(CSVUtils.COMMA);
+        mCSVUtils.initHeader(filePath, headerInfo);
     }
 
     private int getScreenRotation(int orientation) {
@@ -471,6 +552,9 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         super.onDestroy();
         mShortVideoRecorder.destroy();
         mOrientationListener.disable();
+        if (mSensorManager != null) {
+            mSensorManager.unregisterListener(this);
+        }
     }
 
     public void onClickDelete(View v) {
@@ -491,15 +575,11 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
     public void onClickSwitchCamera(View v) {
         mShortVideoRecorder.switchCamera();
-        if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
-        } else {
-            mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
-        }
-        if (mFURenderer != null) {
-            mFURenderer.onCameraChanged(mCameraId, FURenderer.getCameraOrientation(mCameraId));
-        }
+        mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT - mCameraId;
         mFocusIndicator.focusCancel();
+        if (mFURenderer != null) {
+            mFURenderer.onCameraChanged(mCameraId, CameraUtils.getCameraOrientation(mCameraId));
+        }
     }
 
     public void onClickSwitchFlash(View v) {
@@ -550,6 +630,7 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
 
     @Override
     public void onReady() {
+        mShortVideoRecorder.setFocusListener(this);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -738,16 +819,6 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
         });
     }
 
-    private PLCameraSetting.CAMERA_FACING_ID chooseCameraFacingId() {
-        if (PLCameraSetting.hasCameraFacing(PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_3RD)) {
-            return PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_3RD;
-        } else if (PLCameraSetting.hasCameraFacing(PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT)) {
-            return PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT;
-        } else {
-            return PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_BACK;
-        }
-    }
-
     private void showChooseDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.if_edit_video));
@@ -855,5 +926,23 @@ public class VideoRecordActivity extends Activity implements PLRecordStateListen
     @Override
     public void onAutoFocusStop() {
         Log.i(TAG, "auto focus stop");
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        float x = event.values[0];
+        float y = event.values[1];
+        if (Math.abs(x) > 3 || Math.abs(y) > 3) {
+            if (Math.abs(x) > Math.abs(y)) {
+                mFURenderer.onDeviceOrientationChanged(x > 0 ? 0 : 180);
+            } else {
+                mFURenderer.onDeviceOrientationChanged(y > 0 ? 90 : 270);
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }

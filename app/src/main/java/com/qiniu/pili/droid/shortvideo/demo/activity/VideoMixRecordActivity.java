@@ -11,18 +11,22 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.Display;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.qiniu.pili.droid.shortvideo.PLAudioEncodeSetting;
+import com.qiniu.pili.droid.shortvideo.PLAudioMixMode;
 import com.qiniu.pili.droid.shortvideo.PLCameraSetting;
 import com.qiniu.pili.droid.shortvideo.PLDisplayMode;
 import com.qiniu.pili.droid.shortvideo.PLFaceBeautySetting;
@@ -43,14 +47,24 @@ import com.qiniu.pili.droid.shortvideo.demo.utils.ToastUtils;
 import com.qiniu.pili.droid.shortvideo.demo.view.CustomProgressDialog;
 import com.qiniu.pili.droid.shortvideo.demo.view.FocusIndicator;
 import com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar;
+import com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView;
 import com.qiniu.pili.droid.shortvideo.demo.view.VideoMixGLSurfaceView;
 
 import java.util.Stack;
 
 import static com.qiniu.pili.droid.shortvideo.demo.utils.Config.CAMERA_RECORD_CACHE_PATH;
+import static com.qiniu.pili.droid.shortvideo.demo.utils.RecordSettings.chooseCameraFacingId;
 
 public class VideoMixRecordActivity extends Activity implements PLRecordStateListener, PLVideoSaveListener, PLFocusListener {
     private static final String TAG = "VideoMixRecordActivity";
+
+    public static final String MIX_MODE = "mixMode";
+    public static final int MIX_MODE_VERTICAL = 1;
+    public static final int MIX_MODE_SAMPLE_ABOVE_CAMERA = 2;
+    public static final int MIX_MODE_CAMERA_ABOVE_SAMPLE = 3;
+
+    private static final int VIDEO_MIX_ENCODE_WIDTH = 720;
+    private static final int VIDEO_MIX_ENCODE_HEIGHT = 720;
 
     private PLShortVideoMixRecorder mMixRecorder;
 
@@ -65,7 +79,10 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
     private SeekBar mAdjustBrightnessSeekBar;
     private GLSurfaceView mCameraPreview;
     private GLSurfaceView mSamplePreview;
-    private LinearLayout mPreviewParent;
+    private ViewGroup mPreviewParent;
+    private CheckBox mMuteMicrophoneCheck;
+    private CheckBox mMuteSampleCheck;
+    private CheckBox mEarphoneModeCheck;
 
     private TextView mRecordingPercentageView;
     private long mLastRecordingPercentageViewUpdateTime = 0;
@@ -84,11 +101,14 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
 
     private int mFocusIndicatorX;
     private int mFocusIndicatorY;
+    private int mSampleVideoWidth;
+    private int mSampleVideoHeight;
 
     private Stack<Long> mDurationRecordStack = new Stack();
     private Stack<Double> mDurationVideoStack = new Stack();
 
     private boolean mSectionBegan;
+    private int mMixMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,7 +127,12 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
         mFocusIndicator = (FocusIndicator) findViewById(R.id.focus_indicator);
         mAdjustBrightnessSeekBar = (SeekBar) findViewById(R.id.adjust_brightness);
         mRecordingPercentageView = (TextView) findViewById(R.id.recording_percentage);
-        mPreviewParent = (LinearLayout) findViewById(R.id.previewParent);
+        mEarphoneModeCheck = (CheckBox) findViewById(R.id.earphone_mode);
+        mEarphoneModeCheck.setOnCheckedChangeListener(audioCheckedListener);
+        mMuteSampleCheck = (CheckBox) findViewById(R.id.mute_sample);
+        mMuteSampleCheck.setOnCheckedChangeListener(audioCheckedListener);
+        mMuteMicrophoneCheck = (CheckBox) findViewById(R.id.mute_microphone);
+        mMuteMicrophoneCheck.setOnCheckedChangeListener(audioCheckedListener);
 
         mProcessingDialog = new CustomProgressDialog(this);
         mProcessingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -168,6 +193,7 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
             }
         });
 
+        mMixMode = getIntent().getIntExtra(MIX_MODE, MIX_MODE_VERTICAL);
 
         Intent intent = new Intent();
         if (Build.VERSION.SDK_INT < 19) {
@@ -181,55 +207,54 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
         startActivityForResult(Intent.createChooser(intent, "选择要导入的视频"), 0);
     }
 
-    private void init(String sampleVideoPath) {
+    private void configPreview() {
+        switch (mMixMode) {
+            case MIX_MODE_CAMERA_ABOVE_SAMPLE:
+                configCameraAboveSampleMixPreview();
+                break;
+            case MIX_MODE_SAMPLE_ABOVE_CAMERA:
+                configSampleAboveCameraMixPreview();
+                break;
+            case MIX_MODE_VERTICAL:
+                configVerticalMixPreview();
+                break;
+        }
+    }
+
+    private void configCameraAboveSampleMixPreview() {
+        mPreviewParent = (ViewGroup) findViewById(R.id.framePreviewParent);
+        mSamplePreview = new SquareGLSurfaceView(this, null);
+        mPreviewParent.addView(mSamplePreview);
+        mCameraPreview = new SquareGLSurfaceView(this, null);
+        Display display = getWindowManager().getDefaultDisplay(); // 为获取屏幕宽、高
+        mCameraPreview.setLayoutParams(new FrameLayout.LayoutParams(display.getWidth() / 2, display.getWidth() / 2));
+        mPreviewParent.addView(mCameraPreview);
+        mCameraPreview.setZOrderMediaOverlay(true);
+    }
+
+    private void configSampleAboveCameraMixPreview() {
+        mPreviewParent = (ViewGroup) findViewById(R.id.framePreviewParent);
+        mCameraPreview = new SquareGLSurfaceView(this, null);
+        mPreviewParent.addView(mCameraPreview);
+        mSamplePreview = new SquareGLSurfaceView(this, null);
+        Display display = getWindowManager().getDefaultDisplay(); // 为获取屏幕宽、高
+        mSamplePreview.setLayoutParams(new FrameLayout.LayoutParams(display.getWidth() / 2, display.getWidth() / 2));
+        mPreviewParent.addView(mSamplePreview);
+        mSamplePreview.setZOrderMediaOverlay(true);
+    }
+
+    private void configVerticalMixPreview() {
+        mPreviewParent = (ViewGroup) findViewById(R.id.linearPreviewParent);
         mCameraPreview = new VideoMixGLSurfaceView(this, null);
         mCameraPreview.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
         mPreviewParent.addView(mCameraPreview);
         mSamplePreview = new VideoMixGLSurfaceView(this, null);
         mSamplePreview.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
         mPreviewParent.addView(mSamplePreview);
+    }
 
-        mMixRecorder = new PLShortVideoMixRecorder(this);
-        mMixRecorder.setRecordStateListener(this);
-        mMixRecorder.setFocusListener(this);
-
-        mCameraSetting = new PLCameraSetting();
-        PLCameraSetting.CAMERA_FACING_ID facingId = chooseCameraFacingId();
-        mCameraSetting.setCameraId(facingId);
-        mCameraSetting.setCameraPreviewSizeRatio(PLCameraSetting.CAMERA_PREVIEW_SIZE_RATIO.RATIO_16_9);
-        mCameraSetting.setCameraPreviewSizeLevel(PLCameraSetting.CAMERA_PREVIEW_SIZE_LEVEL.PREVIEW_SIZE_LEVEL_720P);
-
-        mMicrophoneSetting = new PLMicrophoneSetting();
-        mMicrophoneSetting.setChannelConfig(AudioFormat.CHANNEL_IN_MONO);
-
-        int VIDEO_MIX_ENCODE_WIDTH = 720;
-        int VIDEO_MIX_ENCODE_HEIGHT = 720;
-
-        mVideoEncodeSetting = new PLVideoEncodeSetting(this);
-        mVideoEncodeSetting.setPreferredEncodingSize(VIDEO_MIX_ENCODE_WIDTH, VIDEO_MIX_ENCODE_HEIGHT);
-        mVideoEncodeSetting.setEncodingBitrate(2000 * 1000);
-        mVideoEncodeSetting.setEncodingFps(30);
-
-        mAudioEncodeSetting = new PLAudioEncodeSetting();
-        mAudioEncodeSetting.setChannels(1);
-
-        PLMediaFile mediaFile = new PLMediaFile(sampleVideoPath);
-        long maxDuration = mediaFile.getDurationMs();
-
-        float sampleRotation = mediaFile.getVideoRotation();
-        float sampleWidth = (sampleRotation == 90 || sampleRotation == 270) ? mediaFile.getVideoHeight() : mediaFile.getVideoWidth();
-        float sampleHeight = (sampleRotation == 90 || sampleRotation == 270) ? mediaFile.getVideoWidth() : mediaFile.getVideoHeight();
-        mediaFile.release();
-        mRecordSetting = new PLRecordSetting();
-        mRecordSetting.setMaxRecordDuration(maxDuration);
-        mRecordSetting.setVideoCacheDir(Config.VIDEO_STORAGE_DIR);
-        mRecordSetting.setVideoFilepath(Config.MIX_RECORD_FILE_PATH);
-        mRecordSetting.setDisplayMode(PLDisplayMode.FIT);
-        mRecordSetting.setRecordSpeedVariable(true);
-
-        mFaceBeautySetting = new PLFaceBeautySetting(1.0f, 0.5f, 0.5f);
-
-        float sampleRatio = sampleWidth / sampleHeight;
+    private PLVideoMixSetting getVerticalMixSetting(String sampleVideoPath) {
+        float sampleRatio = (float) mSampleVideoWidth / mSampleVideoHeight;
         //固定宽度
         int sampleRectWidth = VIDEO_MIX_ENCODE_WIDTH / 2;
         //高度根据长宽比来计算，防止拉伸
@@ -249,17 +274,100 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
         //底部坐标
         int cameraRectBottom = cameraRectTop + cameraRectHeight;
 
+        PLDisplayMode sampleDisplayMode = PLDisplayMode.FULL;
+        if (mMixMode == MIX_MODE_VERTICAL && mSampleVideoWidth < mSampleVideoHeight) {
+            sampleDisplayMode = PLDisplayMode.FIT;
+        }
+
         //摄像机录制的视频在最后画面的矩形区域
         Rect cameraVideoRect = new Rect(0, cameraRectTop, VIDEO_MIX_ENCODE_WIDTH / 2, cameraRectBottom);
         //样本视频在最后画面的矩形区域
         Rect sampleVideoRect = new Rect(VIDEO_MIX_ENCODE_WIDTH / 2, sampleRectTop, VIDEO_MIX_ENCODE_WIDTH, sampleRectBottom);
+        if (sampleDisplayMode == PLDisplayMode.FULL) {
+            //如果样本视频的宽 > 高，那么选用 PLDisplayMode.FULL 模式可以居中剪裁，使之完全填充区域
+            //此时，只需要把样本矩形区域尺寸和 camera 一致即可，无需再单独计算
+            sampleVideoRect = new Rect(VIDEO_MIX_ENCODE_WIDTH / 2, cameraRectTop, VIDEO_MIX_ENCODE_WIDTH, cameraRectBottom);
+        }
 
         //其中：CAMERA_RECORD_CACHE_PATH 为摄像机录制之后的片段最后拼接的缓存视频的路径，它用于和样本视频最后进行合成
-        PLVideoMixSetting mixSetting = new PLVideoMixSetting(cameraVideoRect, sampleVideoRect, sampleVideoPath, CAMERA_RECORD_CACHE_PATH);
+        PLVideoMixSetting mixSetting = new PLVideoMixSetting(cameraVideoRect, sampleVideoRect, sampleVideoPath, sampleDisplayMode, CAMERA_RECORD_CACHE_PATH);
+        return mixSetting;
+    }
+
+    private PLVideoMixSetting getSampleAboveCameraMixSetting(String sampleVideoPath) {
+        Rect cameraVideoRect = new Rect(0, 0, VIDEO_MIX_ENCODE_WIDTH, VIDEO_MIX_ENCODE_HEIGHT);
+        Rect sampleVideoRect = new Rect(0, 0, VIDEO_MIX_ENCODE_WIDTH / 2, VIDEO_MIX_ENCODE_WIDTH / 2);
+        PLDisplayMode sampleDisplayMode = PLDisplayMode.FULL;
+        PLVideoMixSetting mixSetting = new PLVideoMixSetting(cameraVideoRect, sampleVideoRect, sampleVideoPath, sampleDisplayMode, false, CAMERA_RECORD_CACHE_PATH);
+        return mixSetting;
+    }
+
+    private PLVideoMixSetting getCameraAboveSampleMixSetting(String sampleVideoPath) {
+        Rect sampleVideoRect = new Rect(0, 0, VIDEO_MIX_ENCODE_WIDTH, VIDEO_MIX_ENCODE_HEIGHT);
+        Rect cameraVideoRect = new Rect(0, 0, VIDEO_MIX_ENCODE_WIDTH / 2, VIDEO_MIX_ENCODE_WIDTH / 2);
+        PLDisplayMode sampleDisplayMode = PLDisplayMode.FULL;
+        PLVideoMixSetting mixSetting = new PLVideoMixSetting(cameraVideoRect, sampleVideoRect, sampleVideoPath, sampleDisplayMode, true, CAMERA_RECORD_CACHE_PATH);
+        return mixSetting;
+    }
+
+    private void init(String sampleVideoPath) {
+        configPreview();
+
+        mMixRecorder = new PLShortVideoMixRecorder(this);
+        mMixRecorder.setRecordStateListener(this);
+        mMixRecorder.setFocusListener(this);
+
+        mCameraSetting = new PLCameraSetting();
+        PLCameraSetting.CAMERA_FACING_ID facingId = chooseCameraFacingId();
+        mCameraSetting.setCameraId(facingId);
+        mCameraSetting.setCameraPreviewSizeRatio(PLCameraSetting.CAMERA_PREVIEW_SIZE_RATIO.RATIO_16_9);
+        mCameraSetting.setCameraPreviewSizeLevel(PLCameraSetting.CAMERA_PREVIEW_SIZE_LEVEL.PREVIEW_SIZE_LEVEL_720P);
+
+        mMicrophoneSetting = new PLMicrophoneSetting();
+        mMicrophoneSetting.setChannelConfig(AudioFormat.CHANNEL_IN_MONO);
+
+
+        mVideoEncodeSetting = new PLVideoEncodeSetting(this);
+        mVideoEncodeSetting.setPreferredEncodingSize(VIDEO_MIX_ENCODE_WIDTH, VIDEO_MIX_ENCODE_HEIGHT);
+        mVideoEncodeSetting.setEncodingBitrate(2000 * 1000);
+        mVideoEncodeSetting.setEncodingFps(30);
+
+        mAudioEncodeSetting = new PLAudioEncodeSetting();
+        mAudioEncodeSetting.setChannels(1);
+
+        PLMediaFile mediaFile = new PLMediaFile(sampleVideoPath);
+        long maxDuration = mediaFile.getDurationMs();
+
+        float sampleRotation = mediaFile.getVideoRotation();
+        mSampleVideoWidth = (sampleRotation == 90 || sampleRotation == 270) ? mediaFile.getVideoHeight() : mediaFile.getVideoWidth();
+        mSampleVideoHeight = (sampleRotation == 90 || sampleRotation == 270) ? mediaFile.getVideoWidth() : mediaFile.getVideoHeight();
+        mediaFile.release();
+        mRecordSetting = new PLRecordSetting();
+        mRecordSetting.setMaxRecordDuration(maxDuration);
+        mRecordSetting.setVideoCacheDir(Config.VIDEO_STORAGE_DIR);
+        mRecordSetting.setVideoFilepath(Config.MIX_RECORD_FILE_PATH);
+        mRecordSetting.setRecordSpeedVariable(true);
+
+        PLDisplayMode cameraDisplayMode = (mMixMode == MIX_MODE_VERTICAL ? PLDisplayMode.FIT : PLDisplayMode.FULL);
+        mRecordSetting.setDisplayMode(cameraDisplayMode);
+
+        mFaceBeautySetting = new PLFaceBeautySetting(1.0f, 0.5f, 0.5f);
+
+        PLVideoMixSetting mixSetting;
+        if (mMixMode == MIX_MODE_CAMERA_ABOVE_SAMPLE) {
+            mixSetting = getCameraAboveSampleMixSetting(sampleVideoPath);
+        } else if (mMixMode == MIX_MODE_SAMPLE_ABOVE_CAMERA) {
+            mixSetting = getSampleAboveCameraMixSetting(sampleVideoPath);
+        } else {
+            mixSetting = getVerticalMixSetting(sampleVideoPath);
+        }
         mMixRecorder.prepare(mCameraPreview, mSamplePreview, mixSetting, mCameraSetting, mMicrophoneSetting, mVideoEncodeSetting,
                 mAudioEncodeSetting, mFaceBeautySetting, mRecordSetting);
-        mMixRecorder.muteMicrophone(true);
-        mMixRecorder.muteSampleVideo(false);
+
+        mMuteSampleCheck.setChecked(false);
+        mMuteMicrophoneCheck.setChecked(true);
+
+        mMixRecorder.setAudioMixMode(PLAudioMixMode.EARPHONE_MODE);
 
         mSectionProgressBar.setTotalTime(this, mRecordSetting.getMaxRecordDuration());
         mCameraPreview.setOnTouchListener(new View.OnTouchListener() {
@@ -528,21 +636,12 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
             @Override
             public void run() {
                 mDeleteBtn.setEnabled(count > 0);
+                updateCheckBoxClickable(count <= 0);
                 boolean isConcatBtnEnabled = (totalTime >= RecordSettings.DEFAULT_MIN_RECORD_DURATION)
                         || (mRecordSetting != null && totalTime >= mRecordSetting.getMaxRecordDuration());
                 mConcatBtn.setEnabled(isConcatBtnEnabled);
             }
         });
-    }
-
-    private PLCameraSetting.CAMERA_FACING_ID chooseCameraFacingId() {
-        if (PLCameraSetting.hasCameraFacing(PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_3RD)) {
-            return PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_3RD;
-        } else if (PLCameraSetting.hasCameraFacing(PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT)) {
-            return PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_FRONT;
-        } else {
-            return PLCameraSetting.CAMERA_FACING_ID.CAMERA_FACING_BACK;
-        }
     }
 
     private void showChooseDialog() {
@@ -606,4 +705,37 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
     public void onAutoFocusStop() {
         Log.i(TAG, "auto focus stop");
     }
+
+    private void updateCheckBoxVisible() {
+        if (!mMuteMicrophoneCheck.isChecked() && !mMuteSampleCheck.isChecked()) {
+            mEarphoneModeCheck.setVisibility(View.VISIBLE);
+        } else {
+            mEarphoneModeCheck.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateCheckBoxClickable(boolean clickable) {
+        mEarphoneModeCheck.setClickable(clickable);
+        mMuteMicrophoneCheck.setClickable(clickable);
+        mMuteSampleCheck.setClickable(clickable);
+    }
+
+    private CompoundButton.OnCheckedChangeListener audioCheckedListener = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+            switch (buttonView.getId()) {
+                case R.id.mute_microphone:
+                    mMixRecorder.muteMicrophone(isChecked);
+                    updateCheckBoxVisible();
+                    break;
+                case R.id.mute_sample:
+                    mMixRecorder.muteSampleVideo(isChecked);
+                    updateCheckBoxVisible();
+                    break;
+                case R.id.earphone_mode:
+                    mMixRecorder.setAudioMixMode(isChecked ? PLAudioMixMode.EARPHONE_MODE : PLAudioMixMode.SPEAKERPHONE_MODE);
+            }
+        }
+    };
 }

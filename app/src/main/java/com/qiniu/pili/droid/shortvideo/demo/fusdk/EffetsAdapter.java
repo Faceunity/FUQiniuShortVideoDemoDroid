@@ -2,13 +2,14 @@ package com.qiniu.pili.droid.shortvideo.demo.fusdk;
 
 import android.content.Context;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
-import com.faceunity.nama.entity.Effect;
+import com.faceunity.nama.entity.Sticker;
 import com.qiniu.pili.droid.shortvideo.demo.R;
 
 import java.util.List;
@@ -19,17 +20,17 @@ import java.util.List;
  * 滤镜，mv   adapter,
  */
 
-public class EffetsAdapter extends BaseQuickAdapter<Effect, BaseViewHolder> {
+public class EffetsAdapter extends BaseQuickAdapter<Sticker, BaseViewHolder> {
     private Context mContext;
     private ItemTouchListener touchListener;
 
-    public EffetsAdapter(Context context, @Nullable List<Effect> data) {
+    public EffetsAdapter(Context context, @Nullable List<Sticker> data) {
         super(R.layout.record_item_filter, data);
         this.mContext = context;
     }
 
     @Override
-    protected void convert(final BaseViewHolder helper, Effect item) {
+    protected void convert(final BaseViewHolder helper, Sticker item) {
         helper.setText(R.id.record_text, item.getDescription());
         helper.getView(R.id.record_rootView).setOnTouchListener(new View.OnTouchListener() {
             @Override
