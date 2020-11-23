@@ -51,11 +51,11 @@ public class ArRecordActivity extends AppCompatActivity implements View.OnClickL
     private String unpackerPath;
 
     private String uid = "";
-    static String key = "zYnUPaCAWtl4WDH3qLu290KRFA7gCCU2iyI9127chA6gvLQyr9CUlawIjMdC1OXxLwsUWvNN2zI2XIElU8AP2QitdZ4WFAfoA8DdJbos2FL4FnPKiSjX52Avh524oxXLF8iOuZXg4YFSQWgKrhkLsJs8K8NxsEdoWh2UCuRsONxjHAdDX0V871RQMydPAyFzx4L0fTUe";
-    static String serverAddr = "http://copapi.easyar.cn";
-    static String appKey = "cd48a9265b666690c072cefb187dc1c3";
-    static String appSecret = "ccdb6314b418829ef65fbfb3b14c8e30eee13f1f6a5370c5cc43955116c0001d";
-    static String arid = "287e6520eff14884be463d61efb40ba8";
+    static String key = "";
+    static String serverAddr = "";
+    static String appKey = "";
+    static String appSecret = "";
+    static String arid = "";
     //static String arid = "94b179446c0549fbb1c1e0866be6a6ae";
 
     private Scene scene;

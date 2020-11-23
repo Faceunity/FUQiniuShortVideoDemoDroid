@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipChildren="false">
@@ -7,7 +9,7 @@
     <com.qiniu.pili.droid.shortvideo.demo.view.SquareGLSurfaceView
         android:id="@+id/preview"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:id="@+id/brightness_panel"
@@ -114,12 +116,19 @@
             android:textSize="15sp" />
     </LinearLayout>
 
-    <com.faceunity.nama.ui.BeautyControlView
+    <com.faceunity.nama.ui.FaceUnityView
         android:id="@+id/faceunity_control"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/ll_speed"
-        />
+        android:layout_above="@id/bottom_control_panel" />
+
+    <TextView
+        android:id="@+id/tvFPS"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        tools:text="FPS: 23"
+        android:textColor="#000000"/>
 
     <FrameLayout
         android:layout_width="0dp"
@@ -177,9 +186,9 @@
     <LinearLayout
         android:id="@+id/bottom_control_panel"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/preview"
+        android:layout_height="wrap_content"
         android:background="@android:color/background_dark"
+        android:layout_alignParentBottom="true"
         android:gravity="center_horizontal"
         android:orientation="vertical">
 
@@ -191,11 +200,10 @@
         <LinearLayout
             android:id="@+id/btns"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
             android:layout_marginTop="10dp"
-            android:layout_weight="1"
             android:gravity="center">
 
             <ImageView
@@ -248,14 +256,15 @@
                 android:text="0%"
                 android:textColor="#FFFFFF"/>
 
-            <!--            <ImageView-->
-            <!--                android:id="@+id/save_to_draft_button"-->
-            <!--                android:layout_width="30dp"-->
-            <!--                android:layout_height="30dp"-->
-            <!--                android:layout_weight="1"-->
-            <!--                android:onClick="onClickSaveToDraft"-->
-            <!--                android:src="@drawable/ic_draft" />-->
+            <ImageView
+                android:id="@+id/save_to_draft_button"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_weight="1"
+                android:onClick="onClickSaveToDraft"
+                app:srcCompat="@drawable/ic_draft" />
 
         </LinearLayout>
     </LinearLayout>
+
 </RelativeLayout>

@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
+        android:name=".ShortVideoApplication"
         android:allowBackup="true"
         android:hardwareAccelerated="true"
         android:icon="@drawable/ic_launcher"
@@ -28,7 +29,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activity.MainActivity" />
+        <activity android:name=".activity.ConfigActivity"></activity>
+        <activity android:name=".activity.MainActivity">
+        </activity>
         <activity android:name=".activity.VideoRecordActivity" />
         <activity
             android:name=".activity.AudioRecordActivity"
@@ -38,6 +41,9 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".activity.VideoEditActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".activity.ImportAndEditActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".activity.VideoTranscodeActivity"
@@ -99,10 +105,17 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme" />
         <activity
+            android:name=".activity.VideoMixRecordConfigActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme" />
+        <activity
             android:name=".activity.VideoMixRecordActivity"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme" />
-
+        <activity
+            android:name=".activity.VideoMixActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme" />
         <activity android:name=".activity.WebViewActivity" />
     </application>
 

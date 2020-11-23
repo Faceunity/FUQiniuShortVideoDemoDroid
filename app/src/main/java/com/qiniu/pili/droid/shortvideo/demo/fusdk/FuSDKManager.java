@@ -4,7 +4,7 @@ package com.qiniu.pili.droid.shortvideo.demo.fusdk;
 import android.content.Context;
 
 import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.entity.Effect;
+import com.faceunity.nama.entity.Sticker;
 
 import java.util.ArrayList;
 
@@ -122,7 +122,7 @@ public class FuSDKManager {
         // 美颜处理
         FURenderer filterEngine = new FURenderer
                 .Builder(mContext)
-                .setInputTextureType(FURenderer.INPUT_2D_TEXTURE) // this value is from com.faceunity.wrapper.faceunity.FU_ADM_FLAG_ENABLE_READBACK
+                .setInputTextureType(FURenderer.INPUT_TEXTURE_2D) // this value is from com.faceunity.wrapper.faceunity.FU_ADM_FLAG_ENABLE_READBACK
                 .build();
 
         // 设置是否输出原始图片朝向 false: 图像被转正后输出
@@ -135,20 +135,20 @@ public class FuSDKManager {
      */
     public static class MagicModel {
         // 特效code
-        private Effect mMagicCode;
+        private Sticker mMagicCode;
         // 特效时间段
-        private FuSDKManager.FuSDKTimeRange mTimeRange;
+        private FuSDKTimeRange mTimeRange;
 
-        public MagicModel(Effect magicCode, FuSDKManager.FuSDKTimeRange timeRange) {
+        public MagicModel(Sticker magicCode, FuSDKTimeRange timeRange) {
             this.mMagicCode = magicCode;
             this.mTimeRange = timeRange;
         }
 
-        public Effect getMagicCode() {
+        public Sticker getMagicCode() {
             return mMagicCode;
         }
 
-        public FuSDKManager.FuSDKTimeRange getTimeRange() {
+        public FuSDKTimeRange getTimeRange() {
             return this.mTimeRange;
         }
     }

@@ -9,6 +9,7 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,7 +19,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -26,15 +26,17 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.entity.Effect;
-import com.faceunity.nama.entity.EffectEnum;
+import com.faceunity.nama.entity.Sticker;
+import com.faceunity.nama.entity.StickerEnum;
 import com.qiniu.pili.droid.shortvideo.PLBuiltinFilter;
+import com.qiniu.pili.droid.shortvideo.PLGifWatermarkSetting;
 import com.qiniu.pili.droid.shortvideo.PLImageView;
 import com.qiniu.pili.droid.shortvideo.PLMediaFile;
 import com.qiniu.pili.droid.shortvideo.PLMixAudioFile;
@@ -47,18 +49,24 @@ import com.qiniu.pili.droid.shortvideo.PLVideoFilterListener;
 import com.qiniu.pili.droid.shortvideo.PLVideoSaveListener;
 import com.qiniu.pili.droid.shortvideo.PLWatermarkSetting;
 import com.qiniu.pili.droid.shortvideo.demo.R;
+import com.qiniu.pili.droid.shortvideo.demo.ShortVideoApplication;
 import com.qiniu.pili.droid.shortvideo.demo.fusdk.EffetsAdapter;
 import com.qiniu.pili.droid.shortvideo.demo.fusdk.FuSDKManager;
 import com.qiniu.pili.droid.shortvideo.demo.utils.Config;
 import com.qiniu.pili.droid.shortvideo.demo.utils.GetPathFromUri;
+import com.qiniu.pili.droid.shortvideo.demo.utils.PreferenceUtil;
 import com.qiniu.pili.droid.shortvideo.demo.utils.ToastUtils;
 import com.qiniu.pili.droid.shortvideo.demo.view.AudioMixSettingDialog;
 import com.qiniu.pili.droid.shortvideo.demo.view.CustomProgressDialog;
 import com.qiniu.pili.droid.shortvideo.demo.view.FrameListView;
 import com.qiniu.pili.droid.shortvideo.demo.view.FrameSelectorView;
+import com.qiniu.pili.droid.shortvideo.demo.view.GifSelectorPanel;
 import com.qiniu.pili.droid.shortvideo.demo.view.ImageSelectorPanel;
+import com.qiniu.pili.droid.shortvideo.demo.view.OnStickerOperateListener;
 import com.qiniu.pili.droid.shortvideo.demo.view.PaintSelectorPanel;
 import com.qiniu.pili.droid.shortvideo.demo.view.SectionProgressBar;
+import com.qiniu.pili.droid.shortvideo.demo.view.sticker.StickerImageView;
+import com.qiniu.pili.droid.shortvideo.demo.view.sticker.StickerTextView;
 import com.qiniu.pili.droid.shortvideo.demo.view.StrokedTextView;
 import com.qiniu.pili.droid.shortvideo.demo.view.TextSelectorPanel;
 
@@ -72,7 +80,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -90,11 +100,11 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
     private static final int REQUEST_CODE_DUB = 1;
     private static final int REQUEST_CODE_MULTI_AUDIO_MIX_FILE = 2;
 
+    private int mRotation = 0;
+
     // 视频编辑器预览状态
     private enum PLShortVideoEditorStatus {
-        Idle,
-        Playing,
-        Paused,
+        Idle, Playing, Paused,
     }
 
     private PLShortVideoEditorStatus mShortVideoEditorStatus = PLShortVideoEditorStatus.Idle;
@@ -118,10 +128,8 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
     private PLWatermarkSetting mPreviewWatermarkSetting;
     private PLPaintView mPaintView;
     private ImageSelectorPanel mImageSelectorPanel;
+    private GifSelectorPanel mGifSelectorPanel;
     private SectionProgressBar mSectionProgressBar;
-
-    private PLTextView mCurTextView;
-    private PLImageView mCurImageView;
 
     private int mFgVolumeBeforeMute = 100;
     private long mMixDuration = 5000; // ms
@@ -143,6 +151,12 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
     private Timer mScrollTimer;
     private View mCurView;
     private boolean mIsRangeSpeed;
+
+    /**
+     * Gif 动图相关
+     */
+    private Map<StickerImageView, PLGifWatermarkSetting> mGifViewSettings = new HashMap<>();
+    private FrameLayout mStickerViewGroup;
 
     private int mAudioMixingMode = -1;       // audio mixing mode: 0 - single audio mixing; 1 - multiple audio mixing; 单混音和多重混音为互斥模式，最多只可选择其中一项。
     private boolean mMainAudioFileAdded;
@@ -178,8 +192,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         super.onCreate(savedInstanceState);
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
 
         setContentView(R.layout.activity_editor);
@@ -192,20 +205,23 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         mSectionProgressBar = (SectionProgressBar) findViewById(R.id.effect_progressbar);
 
         mFrameListView = (FrameListView) findViewById(R.id.frame_list_view);
+        mStickerViewGroup = findViewById(R.id.sticker_container_view);
 
         mPreviousOrientation = getIntent().getIntExtra(PREVIOUS_ORIENTATION, 1);
 
-//        isOn = PreferenceUtil.getString(MyApp.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
+//        isOn = PreferenceUtil.getString(ShortVideoApplication.getInstance(), PreferenceUtil.KEY_FACEUNITY_ISON);
 
         initPreviewView();
         initTextSelectorPanel();
         initPaintSelectorPanel();
         initImageSelectorPanel();
+        initGifSelectorPanel();
         initProcessingDialog();
         initWatermarkSetting();
         initShortVideoEditor();
         initFiltersList();
         initAudioMixSettingDialog();
+        initResources();
 
         TextView filters_text = findViewById(R.id.filters_text);
         TextView mvs_text = findViewById(R.id.mvs_text);
@@ -216,14 +232,12 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
             onClickShowMVs(mvs_text);
         }
         mSectionProgressBar.setTotalTime(this, mMixDuration);
-    }
-
-    @Override
-    public void finish() {
-        if (0 == mPreviousOrientation) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        }
-        super.finish();
+        mStickerViewGroup.post(new Runnable() {
+            @Override
+            public void run() {
+                initGifViewGroup();
+            }
+        });
     }
 
     private EffetsAdapter.ItemTouchListener mOnEffectTouchListener = new EffetsAdapter.ItemTouchListener() {
@@ -231,7 +245,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         private Timer timer;
         private long downTime;
 
-        private void onActionDown(Effect effectCode, String color) {
+        private void onActionDown(Sticker stickerCode, String color) {
             //            if (mIsVideoPlayCompleted) {
             //                // 当预览至视频结束位置时，再次长按时重置场景特效信息
             ////                resetEffects();
@@ -245,9 +259,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
 
             if (mFuSDKManager != null) {
                 // 切换场景特效
-                mFuSDKManager.getPreviewFilterEngine().onEffectSelected(effectCode);
+                mFuSDKManager.getPreviewFilterEngine().getStickerModule().selectSticker(stickerCode);
                 // 将当前场景特效添加至场景纪录
-                FuSDKManager.MagicModel m = new FuSDKManager.MagicModel(effectCode, FuSDKManager.FuSDKTimeRange.makeRange(startPosition, startPosition));
+                FuSDKManager.MagicModel m = new FuSDKManager.MagicModel(stickerCode, FuSDKManager.FuSDKTimeRange.makeRange(startPosition, startPosition));
                 mFuSDKManager.addMagicModel(m);
             }
 
@@ -268,7 +282,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                onActionDown(mEffects.get(position), mEffectColors[position % 7]);
+                                onActionDown(mStickers.get(position), mEffectColors[position % 7]);
                             }
                         });
                     }
@@ -301,6 +315,263 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     };
 
+
+    private void initPreviewView() {
+        mPreviewView = (GLSurfaceView) findViewById(R.id.preview);
+        mPreviewView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveViewTimeAndHideRect();
+            }
+        });
+    }
+
+    private void initTextSelectorPanel() {
+        mTextSelectorPanel = findViewById(R.id.text_selector_panel);
+        mTextSelectorPanel.setOnTextSelectorListener(new TextSelectorPanel.OnTextSelectorListener() {
+            @Override
+            public void onTextSelected(StrokedTextView textView) {
+                addText(textView);
+            }
+
+            @Override
+            public void onViewClosed() {
+                setPanelVisibility(mTextSelectorPanel, false);
+            }
+        });
+    }
+
+    private void initPaintSelectorPanel() {
+        mPaintSelectorPanel = (PaintSelectorPanel) findViewById(R.id.paint_selector_panel);
+        mPaintSelectorPanel.setOnPaintSelectorListener(new PaintSelectorPanel.OnPaintSelectorListener() {
+            @Override
+            public void onViewClosed() {
+                setPanelVisibility(mPaintSelectorPanel, false);
+
+                mPaintView.setPaintEnable(false);
+            }
+
+            @Override
+            public void onPaintColorSelected(int color) {
+                mPaintView.setPaintColor(color);
+            }
+
+            @Override
+            public void onPaintSizeSelected(int size) {
+                mPaintView.setPaintSize(size);
+            }
+
+            @Override
+            public void onPaintUndoSelected() {
+                mPaintView.undo();
+            }
+
+            @Override
+            public void onPaintClearSelected() {
+                mPaintView.clear();
+            }
+        });
+    }
+
+    private void initImageSelectorPanel() {
+        mImageSelectorPanel = (ImageSelectorPanel) findViewById(R.id.image_selector_panel);
+        mImageSelectorPanel.setOnImageSelectedListener(new ImageSelectorPanel.OnImageSelectedListener() {
+            @Override
+            public void onImageSelected(Drawable drawable) {
+                addImageView(drawable);
+            }
+        });
+    }
+
+    private void initGifSelectorPanel() {
+        mGifSelectorPanel = findViewById(R.id.gif_selector_panel);
+        mGifSelectorPanel.setOnGifSelectedListener(new GifSelectorPanel.OnGifSelectedListener() {
+            @Override
+            public void onGifSelected(String gifPath) {
+                addGif(gifPath);
+            }
+        });
+    }
+
+    private void initProcessingDialog() {
+        mProcessingDialog = new CustomProgressDialog(this);
+        mProcessingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                mShortVideoEditor.cancelSave();
+            }
+        });
+    }
+
+    private void initWatermarkSetting() {
+        mWatermarkSetting = createWatermarkSetting();
+        //动态水印设置
+        mPreviewWatermarkSetting = createWatermarkSetting();
+        mSaveWatermarkSetting = createWatermarkSetting();
+    }
+
+    private void initShortVideoEditor() {
+        mMp4path = getIntent().getStringExtra(MP4_PATH);
+        Log.i(TAG, "editing file: " + mMp4path);
+
+        PLVideoEditSetting setting = new PLVideoEditSetting();
+        setting.setSourceFilepath(mMp4path);
+        setting.setDestFilepath(Config.EDITED_FILE_PATH);
+        setting.setGifPreviewEnabled(false);
+
+        mShortVideoEditor = new PLShortVideoEditor(mPreviewView);
+        mShortVideoEditor.setVideoEditSetting(setting);
+        mShortVideoEditor.setVideoSaveListener(this);
+
+        mMixDuration = mShortVideoEditor.getDurationMs();
+
+        mFrameListView.setVideoPath(mMp4path);
+        mFrameListView.setOnVideoFrameScrollListener(new FrameListView.OnVideoFrameScrollListener() {
+            @Override
+            public void onVideoFrameScrollChanged(final long timeMs) {
+                if (mShortVideoEditorStatus == PLShortVideoEditorStatus.Playing) {
+                    pausePlayback();
+                }
+                mShortVideoEditor.seekTo((int) timeMs);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        changeGifVisiable(timeMs);
+                    }
+                });
+            }
+        });
+
+        initTimerTask();
+    }
+
+    private void initFiltersList() {
+        mFiltersList = (RecyclerView) findViewById(R.id.recycler_view);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        mFiltersList.setLayoutManager(layoutManager);
+        mStickers = StickerEnum.getStickers();
+        mEffetsAdapter = new EffetsAdapter(VideoEditActivity.this, mStickers);
+        mEffetsAdapter.setItemTouchListener(mOnEffectTouchListener);
+        mFiltersList.setAdapter(mEffetsAdapter);
+        setPanelVisibility(mFiltersList, true);
+    }
+
+    private void initAudioMixSettingDialog() {
+        mAudioMixSettingDialog = new AudioMixSettingDialog(this);
+        // make dialog create +
+        mAudioMixSettingDialog.show();
+        mAudioMixSettingDialog.dismiss();
+        // make dialog create -
+        mAudioMixSettingDialog.setOnAudioVolumeChangedListener(mOnAudioVolumeChangedListener);
+        mAudioMixSettingDialog.setOnPositionSelectedListener(mOnPositionSelectedListener);
+    }
+
+    /**
+     * 拷贝 GIF 资源从 Assets 到SD卡
+     */
+    private void initResources() {
+        try {
+            File dir = new File(Config.GIF_STICKER_DIR);
+            if (!dir.exists()) {
+                dir.mkdirs();
+                String[] fs = getAssets().list("gif");
+                for (String file : fs) {
+                    InputStream is = getAssets().open("gif/" + file);
+                    FileOutputStream fos = new FileOutputStream(new File(dir, file));
+                    byte[] buffer = new byte[1024];
+                    int byteCount;
+                    while ((byteCount = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, byteCount);
+                    }
+                    fos.flush();
+                    is.close();
+                    fos.close();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 添加文字贴图
+     */
+    public void addText(StrokedTextView selectText) {
+        saveViewTimeAndHideRect();
+
+        StickerTextView stickerTextView = (StickerTextView) View.inflate(VideoEditActivity.this, R.layout.sticker_text_view, null);
+        stickerTextView.setText(selectText.getText().toString());
+        stickerTextView.setTextColor(selectText.getCurrentTextColor());
+        stickerTextView.setTypeface(selectText.getTypeface());
+        stickerTextView.setShadowLayer(selectText.getShadowRadius(), selectText.getShadowDx(), selectText.getShadowDy(), selectText.getShadowColor());
+        mShortVideoEditor.addTextView(stickerTextView);
+
+        stickerTextView.setOnStickerOperateListener(new StickerOperateListener(stickerTextView));
+        addSelectorView(stickerTextView);
+        showViewBorder(stickerTextView);
+    }
+
+    /**
+     * 添加图片贴图
+     */
+    private void addImageView(Drawable drawable) {
+        saveViewTimeAndHideRect();
+
+        StickerImageView stickerImageView = (StickerImageView) View.inflate(VideoEditActivity.this, R.layout.sticker_image_view, null);
+        stickerImageView.setImageDrawable(drawable);
+
+        mShortVideoEditor.addImageView(stickerImageView);
+        stickerImageView.setOnStickerOperateListener(new StickerOperateListener(stickerImageView));
+
+        addSelectorView(stickerImageView);
+        showViewBorder(stickerImageView);
+    }
+
+    /**
+     * 添加 GIF 贴图
+     */
+    private void addGif(String gifPath) {
+        saveViewTimeAndHideRect();
+
+        StickerImageView stickerImageView = (StickerImageView) View.inflate(VideoEditActivity.this, R.layout.sticker_image_view, null);
+        stickerImageView.setGifFile(gifPath);
+        stickerImageView.startGifPlaying();
+
+        addSelectorView(stickerImageView);
+
+        mStickerViewGroup.addView(stickerImageView);
+        mStickerViewGroup.setVisibility(View.VISIBLE);
+
+        PLGifWatermarkSetting gifWatermarkSetting = getGifSettingFromSticker(stickerImageView);
+        mGifViewSettings.put(stickerImageView, gifWatermarkSetting);
+        mShortVideoEditor.addGifWatermark(gifWatermarkSetting);
+
+        stickerImageView.setOnStickerOperateListener(new StickerOperateListener(stickerImageView));
+        showViewBorder(stickerImageView);
+    }
+
+    /**
+     * 添加贴图所绑定的时间线
+     */
+    private void addSelectorView(View view) {
+        View selectorView = mFrameListView.addSelectorView();
+        view.setTag(R.id.selector_view, selectorView);
+    }
+
+    /**
+     * 根据 StickerImageView 创建对应的 PLGifWatermarkSetting
+     */
+    private PLGifWatermarkSetting getGifSettingFromSticker(StickerImageView stickerImageView) {
+        PLGifWatermarkSetting gifWatermarkSetting = new PLGifWatermarkSetting();
+        gifWatermarkSetting.setFilePath(stickerImageView.getGifPath());
+        gifWatermarkSetting.setDisplayPeriod(stickerImageView.getStartTime(), stickerImageView.getEndTime() - stickerImageView.getStartTime());
+        gifWatermarkSetting.setPosition((float) stickerImageView.getViewX() / mPreviewView.getWidth(), (float) stickerImageView.getViewY() / mPreviewView.getHeight());
+        gifWatermarkSetting.setRotation((int) stickerImageView.getImageDegree());
+        gifWatermarkSetting.setAlpha(255);
+        gifWatermarkSetting.setSize(stickerImageView.getImageWidth() * stickerImageView.getImageScale() / mPreviewView.getWidth(), stickerImageView.getImageHeight() * stickerImageView.getImageScale() / mPreviewView.getHeight());
+        return gifWatermarkSetting;
+    }
 
     /**
      * 启动预览
@@ -368,7 +639,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                             if (model != null) {
 //                                Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + "    model.getMagicCode():" + model.getMagicCode().bundleName());
                                 FURenderer preRender = mFuSDKManager.getPreviewFilterEngine();
-                                preRender.onEffectSelected(model.getMagicCode());
+                                preRender.getStickerModule().selectSticker(model.getMagicCode());
                                 int id = preRender.onDrawFrameSingleInput(texId, texWidth, texHeight);
 //                                Log.i(TAG, "mSceneMagicEditing:" + mSceneMagicEditing + " model:" + model + " texId:" + id + "--width=" + texWidth + "--height=" + texHeight);
                                 return id;
@@ -406,10 +677,16 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         mPausePalybackButton.setImageResource(R.mipmap.btn_play);
     }
 
+    /**
+     * 显示速度改变面板
+     */
     public void onClickShowSpeed(View view) {
         mSpeedPanel.setVisibility((mSpeedPanel.getVisibility() == View.GONE) ? View.VISIBLE : View.GONE);
     }
 
+    /**
+     * 改变视频播放速度
+     */
     public void onSpeedClicked(View view) {
         mSpeedTextView.setTextColor(getResources().getColor(R.color.speedTextNormal));
 
@@ -442,84 +719,32 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
             case R.id.range_speed_text:
                 mIsRangeSpeed = true;
                 break;
+            default:
+                break;
         }
 
         mSpeed = recordSpeed;
         mShortVideoEditor.setSpeed(mSpeed, true);
     }
 
-    private void addImageView(String imagePath) {
-        checkToAddRectView();
-
-        final PLImageView imageView = new PLImageView(VideoEditActivity.this);
-        Bitmap bitmap = null;
-        try {
-            bitmap = BitmapFactory.decodeStream(getAssets().open(imagePath));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        imageView.setImageBitmap(bitmap);
-        mShortVideoEditor.addImageView(imageView);
-
-        addSelectorView(imageView);
-
-        showImageViewBorder(imageView);
-        imageView.setOnTouchListener(new ViewTouchListener(imageView));
-    }
-
-    private void addSelectorView(View view) {
-        View selectorView = mFrameListView.addSelectorView();
-        view.setTag(R.id.selector_view, selectorView);
-    }
-
-    private void initFiltersList() {
-        mFiltersList = (RecyclerView) findViewById(R.id.recycler_view);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        mFiltersList.setLayoutManager(layoutManager);
-        mEffects = EffectEnum.getEffects();
-        mEffetsAdapter = new EffetsAdapter(VideoEditActivity.this, mEffects);
-        mEffetsAdapter.setItemTouchListener(mOnEffectTouchListener);
-        mFiltersList.setAdapter(mEffetsAdapter);
-        setPanelVisibility(mFiltersList, true);
-    }
-
-    private void initAudioMixSettingDialog() {
-        mAudioMixSettingDialog = new AudioMixSettingDialog(this);
-        // make dialog create +
-        mAudioMixSettingDialog.show();
-        mAudioMixSettingDialog.dismiss();
-        // make dialog create -
-        mAudioMixSettingDialog.setOnAudioVolumeChangedListener(mOnAudioVolumeChangedListener);
-        mAudioMixSettingDialog.setOnPositionSelectedListener(mOnPositionSelectedListener);
-    }
-
-    private void initShortVideoEditor() {
-        mMp4path = getIntent().getStringExtra(MP4_PATH);
-        Log.i(TAG, "editing file: " + mMp4path);
-
-        PLVideoEditSetting setting = new PLVideoEditSetting();
-        setting.setSourceFilepath(mMp4path);
-        setting.setDestFilepath(Config.EDITED_FILE_PATH);
-
-        mShortVideoEditor = new PLShortVideoEditor(mPreviewView);
-        mShortVideoEditor.setVideoEditSetting(setting);
-        mShortVideoEditor.setVideoSaveListener(this);
-
-        mMixDuration = mShortVideoEditor.getDurationMs();
-
-        mFrameListView.setVideoPath(mMp4path);
-        mFrameListView.setOnVideoFrameScrollListener(new FrameListView.OnVideoFrameScrollListener() {
-            @Override
-            public void onVideoFrameScrollChanged(long timeMs) {
-                if (mShortVideoEditorStatus == PLShortVideoEditorStatus.Playing) {
-                    pausePlayback();
+    /**
+     * 根据当前的播放时间控制 GIF 的显示
+     */
+    private void changeGifVisiable(final long timeMS) {
+        if (mGifViewSettings != null) {
+            for (final StickerImageView gifViews : mGifViewSettings.keySet()) {
+                if (gifViews.getStartTime() == 0 && gifViews.getEndTime() == 0) {
+                    //刚刚添加，未对时间进行赋值
+                    gifViews.setVisibility(View.VISIBLE);
+                    continue;
                 }
-                mShortVideoEditor.seekTo((int) timeMs);
+                if (timeMS >= gifViews.getStartTime() && timeMS <= gifViews.getEndTime()) {
+                    gifViews.setVisibility(View.VISIBLE);
+                } else {
+                    gifViews.setVisibility(View.GONE);
+                }
             }
-        });
-
-        initTimerTask();
+        }
     }
 
     private void initTimerTask() {
@@ -542,13 +767,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         mScrollTimer.schedule(mScrollTimerTask, 50, 50);
     }
 
-    private void initWatermarkSetting() {
-        mWatermarkSetting = createWatermarkSetting();
-        //动态水印设置
-        mPreviewWatermarkSetting = createWatermarkSetting();
-        mSaveWatermarkSetting = createWatermarkSetting();
-    }
-
+    /**
+     * 创建水印
+     */
     private PLWatermarkSetting createWatermarkSetting() {
         PLWatermarkSetting watermarkSetting = new PLWatermarkSetting();
         watermarkSetting.setResourceId(R.drawable.qiniu_logo);
@@ -557,94 +778,59 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         return watermarkSetting;
     }
 
-    private void initTextSelectorPanel() {
-        mTextSelectorPanel = (TextSelectorPanel) findViewById(R.id.text_selector_panel);
-        mTextSelectorPanel.setOnTextSelectorListener(new TextSelectorPanel.OnTextSelectorListener() {
-            @Override
-            public void onTextSelected(StrokedTextView textView) {
-                addText(textView);
-            }
+    /**
+     * 调整 GIF 容器的宽高
+     */
+    private void initGifViewGroup() {
+        ViewGroup.LayoutParams surfaceLayout = mStickerViewGroup.getLayoutParams();
 
-            @Override
-            public void onViewClosed() {
-                setPanelVisibility(mTextSelectorPanel, false);
-            }
-        });
+        //根据视频所携带的角度进行调整
+        PLMediaFile mediaFile = new PLMediaFile(mMp4path);
+        int outputWidth = mediaFile.getVideoWidth();
+        int outputHeight = mediaFile.getVideoHeight();
+        int rotation = mediaFile.getVideoRotation();
+        if ((rotation == 90 || rotation == 270)) {
+            int temp = outputWidth;
+            outputWidth = outputHeight;
+            outputHeight = temp;
+        }
+        //根据视频的宽高进行调整
+        if (outputWidth > outputHeight) {
+            surfaceLayout.width = mPreviewView.getWidth();
+            surfaceLayout.height = Math.round((float) outputHeight * mPreviewView.getWidth() / outputWidth);
+        } else {
+            surfaceLayout.height = mPreviewView.getHeight();
+            surfaceLayout.width = Math.round((float) outputWidth * mPreviewView.getHeight() / outputHeight);
+        }
+        //移动 GIF 容器以覆盖预览画面
+        mStickerViewGroup.setLayoutParams(surfaceLayout);
+        mStickerViewGroup.setTranslationX(mPreviewView.getWidth() - surfaceLayout.width);
+        mStickerViewGroup.setTranslationY((mPreviewView.getHeight() - surfaceLayout.height) / 2);
+        mStickerViewGroup.requestLayout();
     }
 
-    private void initPaintSelectorPanel() {
-        mPaintSelectorPanel = (PaintSelectorPanel) findViewById(R.id.paint_selector_panel);
-        mPaintSelectorPanel.setOnPaintSelectorListener(new PaintSelectorPanel.OnPaintSelectorListener() {
-            @Override
-            public void onViewClosed() {
-                setPanelVisibility(mPaintSelectorPanel, false);
-
-                mPaintView.setPaintEnable(false);
-            }
-
-            @Override
-            public void onPaintColorSelected(int color) {
-                mPaintView.setPaintColor(color);
-            }
-
-            @Override
-            public void onPaintSizeSelected(int size) {
-                mPaintView.setPaintSize(size);
-            }
-
-            @Override
-            public void onPaintUndoSelected() {
-                mPaintView.undo();
-            }
-
-            @Override
-            public void onPaintClearSelected() {
-                mPaintView.clear();
-            }
-        });
-    }
-
-    private void initImageSelectorPanel() {
-        mImageSelectorPanel = (ImageSelectorPanel) findViewById(R.id.image_selector_panel);
-        mImageSelectorPanel.setOnImageSelectedListener(new ImageSelectorPanel.OnImageSelectedListener() {
-            @Override
-            public void onImageSelected(String imagePath) {
-                addImageView(imagePath);
-            }
-        });
-    }
-
-    private void initPreviewView() {
-        mPreviewView = (GLSurfaceView) findViewById(R.id.preview);
-        mPreviewView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                hideViewBorder();
-                checkToAddRectView();
-            }
-        });
-    }
-
-    private void checkToAddRectView() {
+    /**
+     * 保存当前 View 的时间调整并隐藏编辑框
+     */
+    private void saveViewTimeAndHideRect() {
         if (mCurView != null) {
             View rectView = mFrameListView.addSelectedRect((View) mCurView.getTag(R.id.selector_view));
             mCurView.setTag(R.id.rect_view, rectView);
             FrameListView.SectionItem sectionItem = mFrameListView.getSectionByRectView(rectView);
-            mShortVideoEditor.setViewTimeline(mCurView, sectionItem.getStartTime(), (sectionItem.getEndTime() - sectionItem.getStartTime()));
+            if (mCurView instanceof StickerImageView && ((StickerImageView) mCurView).getGifPath() != null) {
+                ((StickerImageView) mCurView).setTime(sectionItem.getStartTime(), sectionItem.getEndTime());
+                saveGifSetting();
+            } else {
+                mShortVideoEditor.setViewTimeline(mCurView, sectionItem.getStartTime(), (sectionItem.getEndTime() - sectionItem.getStartTime()));
+            }
+            mCurView.setSelected(false);
             mCurView = null;
         }
     }
 
-    private void initProcessingDialog() {
-        mProcessingDialog = new CustomProgressDialog(this);
-        mProcessingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                mShortVideoEditor.cancelSave();
-            }
-        });
-    }
-
+    /**
+     * 重置编辑
+     */
     public void onClickReset(View v) {
         mSelectedFilter = null;
         mSelectedMV = null;
@@ -656,6 +842,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         mAudioMixSettingDialog.clearMixAudio();
     }
 
+    /**
+     * 单混音
+     */
     public void onClickMix(View v) {
         if (mAudioMixingMode == 1) {
             ToastUtils.s(this, "已选择多重混音，无法再选择单混音！");
@@ -674,6 +863,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         startActivityForResult(Intent.createChooser(intent, "请选择混音文件："), REQUEST_CODE_PICK_AUDIO_MIX_FILE);
     }
 
+    /**
+     * 多重混音
+     */
     public void onClickMultipleAudioMixing(View v) {
         PLMediaFile mediaFile = new PLMediaFile(mMp4path);
         boolean isPureVideo = !mediaFile.hasAudio();
@@ -701,6 +893,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         startActivityForResult(Intent.createChooser(intent, "请选择混音文件："), REQUEST_CODE_MULTI_AUDIO_MIX_FILE);
     }
 
+    /**
+     * 静音
+     */
     public void onClickMute(View v) {
         mIsMuted = !mIsMuted;
         mShortVideoEditor.muteOriginAudio(mIsMuted);
@@ -719,16 +914,25 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    /**
+     * 显示文字贴图面板
+     */
     public void onClickTextSelect(View v) {
         setPanelVisibility(mTextSelectorPanel, true);
     }
 
+    /**
+     * 配音
+     */
     public void onClickDubAudio(View v) {
         Intent intent = new Intent(this, VideoDubActivity.class);
         intent.putExtra(VideoDubActivity.MP4_PATH, mMp4path);
         startActivityForResult(intent, REQUEST_CODE_DUB);
     }
 
+    /**
+     * 点击混音 弹窗
+     */
     public void onClickAudioMixSetting(View v) {
         if (mIsMixAudio) {
             mAudioMixSettingDialog.show();
@@ -737,38 +941,43 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    /**
+     * 点击返回
+     */
     public void onClickBack(View v) {
         finish();
     }
 
+    /**
+     * 添加水印
+     */
     public void onClickToggleWatermark(View v) {
         mIsUseWatermark = !mIsUseWatermark;
         mShortVideoEditor.setWatermark(mIsUseWatermark ? mWatermarkSetting : null);
     }
 
-    public void addText(StrokedTextView selectText) {
-        checkToAddRectView();
-
-        final StrokedTextView textView = new StrokedTextView(this);
-        textView.setText("点击输入文字");
-        textView.setTextSize(40);
-        textView.setTypeface(selectText.getTypeface());
-        textView.setTextColor(selectText.getTextColors());
-        textView.setShadowLayer(selectText.getShadowRadius(), selectText.getShadowDx(), selectText.getShadowDy(), selectText.getShadowColor());
-        textView.setAlpha(selectText.getAlpha());
-        textView.setStrokeWidth(selectText.getStrokeWidth());
-        textView.setStrokeColor(selectText.getStrokeColor());
-
-        mShortVideoEditor.addTextView(textView);
-
-        addSelectorView(textView);
-
-        showTextViewBorder(textView);
-        textView.setOnTouchListener(new ViewTouchListener(textView));
-
-        ToastUtils.s(this, "触摸文字右下角控制缩放与旋转，双击移除。");
+    /**
+     * 显示动图添加面板
+     */
+    public void onClickToggleGifWatermark(View v) {
+        setPanelVisibility(mGifSelectorPanel, true);
     }
 
+    /**
+     * 旋转视频
+     */
+    public void onClickRotate(View v) {
+        mRotation = (mRotation + 90) % 360;
+        mShortVideoEditor.setRotation(mRotation);
+        for (PLGifWatermarkSetting gifWatermarkSetting : mGifViewSettings.values()) {
+            mShortVideoEditor.addGifWatermark(gifWatermarkSetting);
+        }
+        startPlayback();
+    }
+
+    /**
+     * 创建文字编辑弹窗并显示
+     */
     private void createTextDialog(final PLTextView textView) {
         final EditText edit = new EditText(VideoEditActivity.this);
         edit.setText(textView.getText());
@@ -779,7 +988,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                textView.setText(edit.getText());
+                ((StickerTextView) textView).setText(edit.getText().toString());
             }
         });
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -791,174 +1000,92 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         builder.show();
     }
 
-    private void hideViewBorder() {
-        if (mCurTextView != null) {
-            mCurTextView.setBackgroundResource(0);
-            mCurTextView = null;
-        }
-
-        if (mCurImageView != null) {
-            mCurImageView.setBackgroundResource(0);
-            mCurImageView = null;
-        }
-    }
-
-    private void showTextViewBorder(PLTextView textView) {
-        hideViewBorder();
-        mCurTextView = textView;
-        mCurTextView.setBackgroundResource(R.drawable.border_text_view);
-
-        mCurView = textView;
-
-        FrameSelectorView selectorView = (FrameSelectorView) mCurView.getTag(R.id.selector_view);
-        selectorView.setVisibility(View.VISIBLE);
-
-        View rectView = (View) mCurView.getTag(R.id.rect_view);
-        if (rectView != null) {
-            mFrameListView.showSelectorByRectView(selectorView, rectView);
-            mFrameListView.removeRectView(rectView);
-            mShortVideoEditor.setViewTimeline(mCurView, 0, mShortVideoEditor.getDurationMs());
-        }
+    /**
+     * 显示编辑框并为其添加初始时间
+     */
+    private void showViewBorder(View view) {
+        mCurView = view;
+        mCurView.setSelected(true);
 
         pausePlayback();
     }
 
-    private void showImageViewBorder(PLImageView imageView) {
-        hideViewBorder();
-        mCurImageView = imageView;
-        mCurImageView.setBackgroundResource(R.drawable.border_text_view);
+    /**
+     * 贴图操作监听
+     */
+    private class StickerOperateListener implements OnStickerOperateListener {
 
-        mCurView = imageView;
-
-        FrameSelectorView selectorView = (FrameSelectorView) mCurView.getTag(R.id.selector_view);
-        selectorView.setVisibility(View.VISIBLE);
-
-        View rectView = (View) mCurView.getTag(R.id.rect_view);
-        if (rectView != null) {
-            mFrameListView.showSelectorByRectView(selectorView, rectView);
-            mFrameListView.removeRectView(rectView);
-            mShortVideoEditor.setViewTimeline(mCurView, 0, mShortVideoEditor.getDurationMs());
-        }
-
-        pausePlayback();
-    }
-
-    private class ViewTouchListener implements View.OnTouchListener {
-        private float lastTouchRawX;
-        private float lastTouchRawY;
-        private boolean scale;
-        private boolean isViewMoved;
         private View mView;
 
-        public ViewTouchListener(View view) {
+        StickerOperateListener(View view) {
             mView = view;
         }
 
-        GestureDetector.SimpleOnGestureListener simpleOnGestureListener = new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDoubleTap(MotionEvent e) {
-                if (mView instanceof PLTextView) {
-                    mShortVideoEditor.removeTextView((PLTextView) mView);
-                    if (mCurTextView != null) {
-                        mCurTextView = null;
-                    }
-                } else if (mView instanceof PLImageView) {
-                    mShortVideoEditor.removeImageView((PLImageView) mView);
-                    if (mCurImageView != null) {
-                        mCurImageView = null;
-                    }
-                }
-
-                View rectView = (View) mView.getTag(R.id.rect_view);
-                if (rectView != null) {
-                    mFrameListView.removeRectView((View) mView.getTag(R.id.rect_view));
-                }
-                FrameSelectorView selectorView = (FrameSelectorView) mView.getTag(R.id.selector_view);
-                if (selectorView != null) {
-                    mFrameListView.removeSelectorView(selectorView);
-                }
-                mCurView = null;
-                return true;
-            }
-
-            @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                if (isViewMoved) {
-                    return true;
-                }
-                if (mView instanceof PLTextView) {
-                    createTextDialog((PLTextView) mView);
-                }
-                return true;
-            }
-        };
-        final GestureDetector gestureDetector = new GestureDetector(VideoEditActivity.this, simpleOnGestureListener);
-
+        /**
+         * 当点击删除贴图
+         */
         @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            if (gestureDetector.onTouchEvent(event)) {
-                return true;
-            }
-
-            int action = event.getAction();
-            float touchRawX = event.getRawX();
-            float touchRawY = event.getRawY();
-            float touchX = event.getX();
-            float touchY = event.getY();
-
-            if (action == MotionEvent.ACTION_DOWN) {
-                boolean xOK = touchX >= v.getWidth() * 3 / 4 && touchX <= v.getWidth();
-                boolean yOK = touchY >= v.getHeight() * 2 / 4 && touchY <= v.getHeight();
-                scale = xOK && yOK;
-
-                if (mCurView != v) {
-                    checkToAddRectView();
-                }
-                if (v instanceof PLTextView) {
-                    showTextViewBorder((PLTextView) v);
-                } else if (v instanceof PLImageView) {
-                    showImageViewBorder((PLImageView) v);
-                }
-            }
-
-            if (action == MotionEvent.ACTION_MOVE) {
-                float deltaRawX = touchRawX - lastTouchRawX;
-                float deltaRawY = touchRawY - lastTouchRawY;
-
-                if (scale) {
-                    // rotate
-                    float centerX = v.getX() + (float) v.getWidth() / 2;
-                    float centerY = v.getY() + (float) v.getHeight() / 2;
-                    double angle = Math.atan2(touchRawY - centerY, touchRawX - centerX) * 180 / Math.PI;
-                    v.setRotation((float) angle - 45);
-
-                    // scale
-                    float xx = (touchRawX >= centerX ? deltaRawX : -deltaRawX);
-                    float yy = (touchRawY >= centerY ? deltaRawY : -deltaRawY);
-                    float sf = (v.getScaleX() + xx / v.getWidth() + v.getScaleY() + yy / v.getHeight()) / 2;
-                    v.setScaleX(sf);
-                    v.setScaleY(sf);
+        public void onDeleteClicked() {
+            if (mView instanceof StickerTextView) {
+                mShortVideoEditor.removeTextView((PLTextView) mView);
+            } else {
+                if (((StickerImageView) mView).getGifPath() != null) {
+                    mStickerViewGroup.removeView(mView);
+                    mShortVideoEditor.removeGifWatermark(mGifViewSettings.get(mView));
+                    mGifViewSettings.remove(mView);
                 } else {
-                    // translate
-                    v.setTranslationX(v.getTranslationX() + deltaRawX);
-                    v.setTranslationY(v.getTranslationY() + deltaRawY);
+                    mShortVideoEditor.removeImageView((PLImageView) mView);
                 }
-                isViewMoved = true;
             }
 
-            if (action == MotionEvent.ACTION_UP) {
-                isViewMoved = false;
+            View rectView = (View) mView.getTag(R.id.rect_view);
+            if (rectView != null) {
+                mFrameListView.removeRectView((View) mView.getTag(R.id.rect_view));
             }
-
-            lastTouchRawX = touchRawX;
-            lastTouchRawY = touchRawY;
-            return true;
+            FrameSelectorView selectorView = (FrameSelectorView) mView.getTag(R.id.selector_view);
+            if (selectorView != null) {
+                mFrameListView.removeSelectorView(selectorView);
+            }
+            mCurView = null;
         }
+
+        /**
+         * 当点击贴图编辑
+         */
+        @Override
+        public void onEditClicked() {
+            if (mView instanceof StickerTextView) {
+                createTextDialog((StickerTextView) mView);
+            }
+        }
+
+        /**
+         * 当贴图被选中
+         */
+        @Override
+        public void onStickerSelected() {
+            if (mCurView != mView) {
+                saveViewTimeAndHideRect();
+                mCurView = mView;
+                FrameSelectorView selectorView = (FrameSelectorView) mCurView.getTag(R.id.selector_view);
+                selectorView.setVisibility(View.VISIBLE);
+                View rectView = (View) mCurView.getTag(R.id.rect_view);
+                if (rectView != null) {
+                    mFrameListView.showSelectorByRectView(selectorView, rectView);
+                    mFrameListView.removeRectView(rectView);
+                }
+            }
+
+        }
+
     }
 
     EffetsAdapter mEffetsAdapter;
-    private List<Effect> mEffects;
+    private List<Sticker> mStickers;
 
+    /**
+     * 显示滤镜选择面板
+     */
     public void onClickShowFilters(View v) {
         resetEffects();
         setPanelVisibility(mFiltersList, true);
@@ -966,7 +1093,7 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         mFiltersList.setAdapter(mEffetsAdapter);
     }
 
-    /// ========================= FuSDK 相关 ========================= ///
+
     private void resetEffects() {
         mSectionProgressBar.reset();
         if (mFuSDKManager != null) {
@@ -977,16 +1104,16 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         pausePlayback();
     }
 
-//    public void onClickShowFilters(View v) {
-//        setPanelVisibility(mFiltersList, true);
-//
-//        mFiltersList.setAdapter(new FilterListAdapter(mShortVideoEditor.getBuiltinFilterList()));
-//    }
-
+    /**
+     * 显示贴图面板
+     */
     public void onClickShowImages(View v) {
         setPanelVisibility(mImageSelectorPanel, true);
     }
 
+    /**
+     * 显示涂鸦面板
+     */
     public void onClickShowPaint(View v) {
         setPanelVisibility(mPaintSelectorPanel, true);
 
@@ -1002,6 +1129,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         setPanelVisibility(panel, isVisible, false);
     }
 
+    /**
+     * 控制各种面板的显示
+     */
     private void setPanelVisibility(View panel, boolean isVisible, boolean isEffect) {
         if (panel instanceof TextSelectorPanel || panel instanceof PaintSelectorPanel) {
             if (isVisible) {
@@ -1016,11 +1146,15 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
             if (isVisible) {
                 mImageSelectorPanel.setVisibility(View.GONE);
                 mFiltersList.setVisibility(View.GONE);
+                mGifSelectorPanel.setVisibility(View.GONE);
             }
             panel.setVisibility(isVisible ? View.VISIBLE : View.GONE);
         }
     }
 
+    /**
+     * 显示 MV 选择面板 拷贝资源
+     */
     public void onClickShowMVs(View v) {
         setPanelVisibility(mFiltersList, true);
         try {
@@ -1058,10 +1192,15 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    /**
+     * 改变视频播放状态
+     */
     public void onClickTogglePlayback(View v) {
         if (mShortVideoEditorStatus == PLShortVideoEditorStatus.Playing) {
+            saveViewTimeAndHideRect();
             pausePlayback();
         } else {
+            saveViewTimeAndHideRect();
             startPlayback();
         }
     }
@@ -1127,18 +1266,21 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        stopPlayback();
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
         mShortVideoEditor.setBuiltinFilter(mSelectedFilter);
         mShortVideoEditor.setMVEffect(mSelectedMV, mSelectedMask);
         mShortVideoEditor.setWatermark(mIsUseWatermark ? mWatermarkSetting : null);
+        for (PLGifWatermarkSetting gifWatermarkSetting : mGifViewSettings.values()) {
+            mShortVideoEditor.addGifWatermark(gifWatermarkSetting);
+        }
         startPlayback();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopPlayback();
     }
 
     @Override
@@ -1154,6 +1296,17 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    @Override
+    public void finish() {
+        if (0 == mPreviousOrientation) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }
+        super.finish();
+    }
+
+    /**
+     * 设置添加变速时间段
+     */
     private void setSpeedTimeRanges() {
         PLMediaFile mediaFile = new PLMediaFile(mMp4path);
         long durationMs = mediaFile.getDurationMs();
@@ -1171,8 +1324,12 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         mShortVideoEditor.setSpeedTimeRanges(speedTimeRanges);
     }
 
+    /**
+     * 保存视频
+     */
     public void onSaveEdit(View v) {
-        checkToAddRectView();
+        saveViewTimeAndHideRect();
+        startPlayback();
         mProcessingDialog.show();
         if (mIsRangeSpeed) {
             setSpeedTimeRanges();
@@ -1181,23 +1338,10 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
             mMainMixAudioFile.setSpeed(mSpeed);
             mMainMixAudioFile.setDurationInVideo((int) (mInputMp4FileDurationMs * 1000 / mSpeed));
         }
-        if (mFuSDKManager != null) {
-            synchronized (this) {
-                mFuSDKManager.destroyPreviewFilterEngine();
-            }
-        }
         mShortVideoEditor.save(new PLVideoFilterListener() {
-            // 记录保存时的起始时间戳
-            private long startTimeMs = 0;
-
             @Override
             public void onSurfaceCreated() {
-                Log.i(TAG, "保存编辑视屏onSurfaceCreated");
-                startTimeMs = 0;
-                if (mFuSDKManager != null) {
-                    mFuSDKManager.setupSaveFilterEngine();
-                    mFuSDKManager.getSaveFilterEngine().onSurfaceCreated();
-                }
+
             }
 
             @Override
@@ -1207,19 +1351,11 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
 
             @Override
             public void onSurfaceDestroy() {
-                Log.i(TAG, "保存编辑视屏onSurfaceDestroy");
 
-                if (mFuSDKManager != null) {
-                    mFuSDKManager.destroySaveFilterEngine();
-                }
             }
 
             @Override
             public int onDrawFrame(int texId, int texWidth, int texHeight, long timestampNs, float[] transformMatrix) {
-                if (mFuSDKManager == null) {
-                    return texId;
-                }
-
                 long time = timestampNs / 1000000L;
                 //三秒之后，保存的视频中水印坐标动态改变
                 if (time > 3000) {
@@ -1228,33 +1364,30 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
                     mSaveWatermarkSetting.setPosition(0.01f, 0.01f);
                 }
                 mShortVideoEditor.updateSaveWatermark(mIsUseWatermark ? mSaveWatermarkSetting : null);
-
-                long currentTimeMs = (long) Math.ceil(timestampNs / 1000000L);
-                if (startTimeMs == 0) {
-                    startTimeMs = currentTimeMs;
-                }
-
-                if (mFuSDKManager.getSaveFilterEngine() != null) {
-                    // 根据保存进度更新场景特效
-                    FuSDKManager.MagicModel magicModel = mFuSDKManager.findMagicModelWithPosition(currentTimeMs - startTimeMs);
-
-                    if (magicModel != null) {
-                        FURenderer saveRunder = mFuSDKManager.getSaveFilterEngine();
-                        saveRunder.onEffectSelected(magicModel.getMagicCode());
-//                        Log.i(TAG, "保存编辑视屏onDrawFrame" + magicModel.getMagicCode());
-                        return saveRunder.onDrawFrameSingleInput(texId, texWidth, texHeight);
-                    } else {
-                        Log.i(TAG, "保存编辑视屏onDrawFrame是空");
-                    }
-                } else {
-                    Log.i(TAG, "保存编辑视屏getSaveFilterEngine是空");
-                }
                 return texId;
             }
         });
-        hideViewBorder();
     }
 
+    /**
+     * 更新GIF设置
+     */
+    private void saveGifSetting() {
+        if (mCurView != null && mCurView instanceof StickerImageView && ((StickerImageView) mCurView).getGifPath() != null) {
+            StickerImageView stickerImageView = (StickerImageView) mCurView;
+            PLGifWatermarkSetting gifWatermarkSetting = mGifViewSettings.get(stickerImageView);
+            gifWatermarkSetting.setDisplayPeriod(stickerImageView.getStartTime(), stickerImageView.getEndTime() - stickerImageView.getStartTime());
+            gifWatermarkSetting.setPosition((float) stickerImageView.getViewX() / mStickerViewGroup.getWidth(), (float) stickerImageView.getViewY() / mStickerViewGroup.getHeight());
+            gifWatermarkSetting.setRotation((int) stickerImageView.getImageDegree());
+            gifWatermarkSetting.setAlpha(255);
+            gifWatermarkSetting.setSize(stickerImageView.getImageWidth() * stickerImageView.getImageScale() / mStickerViewGroup.getWidth(), stickerImageView.getImageHeight() * stickerImageView.getImageScale() / mStickerViewGroup.getHeight());
+            mShortVideoEditor.updateGifWatermark(gifWatermarkSetting);
+        }
+    }
+
+    /**
+     * 视频保存成功回调
+     */
     @Override
     public void onSaveVideoSuccess(String filePath) {
         Log.i(TAG, "save edit success filePath: " + filePath);
@@ -1262,6 +1395,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         PlaybackActivity.start(VideoEditActivity.this, filePath);
     }
 
+    /**
+     * 视频保存失败回调
+     */
     @Override
     public void onSaveVideoFailed(final int errorCode) {
         Log.e(TAG, "save edit failed errorCode:" + errorCode);
@@ -1274,12 +1410,17 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         });
     }
 
+    /**
+     * 视频保存取消回调
+     */
     @Override
     public void onSaveVideoCanceled() {
         mProcessingDialog.dismiss();
-        mCancelSave = true;
     }
 
+    /**
+     * 视频保存进度更新
+     */
     @Override
     public void onProgressUpdate(final float percentage) {
         runOnUiThread(new Runnable() {
@@ -1301,6 +1442,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    /**
+     * 滤镜选择列表
+     */
     private class FilterListAdapter extends RecyclerView.Adapter<FilterItemViewHolder> {
         private PLBuiltinFilter[] mFilters;
 
@@ -1357,6 +1501,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    /**
+     * MV 选择列表
+     */
     private class MVListAdapter extends RecyclerView.Adapter<FilterItemViewHolder> {
         private JSONArray mMVArray;
 
@@ -1420,6 +1567,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     }
 
+    /**
+     * 混音音量改变监听
+     */
     private AudioMixSettingDialog.OnAudioVolumeChangedListener mOnAudioVolumeChangedListener = new AudioMixSettingDialog.OnAudioVolumeChangedListener() {
         @Override
         public void onAudioVolumeChanged(int fgVolume, int bgVolume) {
@@ -1430,6 +1580,9 @@ public class VideoEditActivity extends Activity implements PLVideoSaveListener {
         }
     };
 
+    /**
+     * 混音位置改变监听
+     */
     private AudioMixSettingDialog.OnPositionSelectedListener mOnPositionSelectedListener = new AudioMixSettingDialog.OnPositionSelectedListener() {
         @Override
         public void onPositionSelected(long position) {
