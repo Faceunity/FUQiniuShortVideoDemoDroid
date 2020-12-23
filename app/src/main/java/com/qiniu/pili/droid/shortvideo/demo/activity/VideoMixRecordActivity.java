@@ -88,7 +88,6 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
     private long mLastRecordingPercentageViewUpdateTime = 0;
 
     private boolean mFlashEnabled;
-    private boolean mIsEditVideo = false;
 
     private GestureDetector mGestureDetector;
 
@@ -418,7 +417,6 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
 
     public void onClickConcat(View v) {
         mProcessingDialog.show();
-        showChooseDialog();
     }
 
     public void onClickBrightness(View v) {
@@ -576,11 +574,7 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
             public void run() {
                 mProcessingDialog.dismiss();
                 int screenOrientation = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == getRequestedOrientation()) ? 0 : 1;
-                if (mIsEditVideo) {
-                    VideoEditActivity.start(VideoMixRecordActivity.this, filePath, screenOrientation);
-                } else {
-                    PlaybackActivity.start(VideoMixRecordActivity.this, filePath, screenOrientation);
-                }
+                PlaybackActivity.start(VideoMixRecordActivity.this, filePath, screenOrientation);
             }
         });
     }
@@ -642,27 +636,6 @@ public class VideoMixRecordActivity extends Activity implements PLRecordStateLis
                 mConcatBtn.setEnabled(isConcatBtnEnabled);
             }
         });
-    }
-
-    private void showChooseDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.if_edit_video));
-        builder.setPositiveButton(getString(R.string.dlg_yes), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                mIsEditVideo = true;
-                mMixRecorder.save(VideoMixRecordActivity.this);
-            }
-        });
-        builder.setNegativeButton(getString(R.string.dlg_no), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                mIsEditVideo = false;
-                mMixRecorder.save(VideoMixRecordActivity.this);
-            }
-        });
-        builder.setCancelable(false);
-        builder.create().show();
     }
 
     @Override

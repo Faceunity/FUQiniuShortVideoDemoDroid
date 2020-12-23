@@ -40,9 +40,6 @@
             android:name=".activity.VideoTrimActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".activity.VideoEditActivity"
-            android:screenOrientation="portrait" />
-        <activity
             android:name=".activity.ImportAndEditActivity"
             android:screenOrientation="portrait" />
         <activity

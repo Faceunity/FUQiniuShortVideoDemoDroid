@@ -109,7 +109,6 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
     private long mLastRecordingPercentageViewUpdateTime = 0;
 
     private boolean mFlashEnabled;
-    private boolean mIsEditVideo = false;
 
     private GestureDetector mGestureDetector;
 
@@ -565,7 +564,7 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
 
     public void onClickConcat(View v) {
         mProcessingDialog.show();
-        showChooseDialog();
+        mShortVideoRecorder.concatSections(this);
     }
 
     public void onClickBrightness(View v) {
@@ -754,11 +753,7 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
             public void run() {
                 mProcessingDialog.dismiss();
                 int screenOrientation = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == getRequestedOrientation()) ? 0 : 1;
-                if (mIsEditVideo) {
-                    VideoEditActivity.start(VideoRecordActivity.this, filePath, screenOrientation);
-                } else {
-                    PlaybackActivity.start(VideoRecordActivity.this, filePath, screenOrientation);
-                }
+                PlaybackActivity.start(VideoRecordActivity.this, filePath, screenOrientation);
             }
         });
     }
@@ -817,27 +812,6 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
                 mConcatBtn.setEnabled(totalTime >= (RecordSettings.DEFAULT_MIN_RECORD_DURATION));
             }
         });
-    }
-
-    private void showChooseDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.if_edit_video));
-        builder.setPositiveButton(getString(R.string.dlg_yes), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                mIsEditVideo = true;
-                mShortVideoRecorder.concatSections(VideoRecordActivity.this);
-            }
-        });
-        builder.setNegativeButton(getString(R.string.dlg_no), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                mIsEditVideo = false;
-                mShortVideoRecorder.concatSections(VideoRecordActivity.this);
-            }
-        });
-        builder.setCancelable(false);
-        builder.create().show();
     }
 
     public void onSpeedClicked(View view) {

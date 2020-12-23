@@ -19,11 +19,6 @@ public class ImportAndEditActivity extends AppCompatActivity {
         setContentView(R.layout.activity_import_and_edit);
     }
 
-    public void onClickImport(View v) {
-        if (isPermissionOK()) {
-            jumpToActivity(VideoTrimActivity.class);
-        }
-    }
 
     public void onClickTransitionMake(View v) {
         if (isPermissionOK()) {
