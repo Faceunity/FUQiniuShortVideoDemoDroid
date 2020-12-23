@@ -250,7 +250,6 @@ public class VideoTranscodeActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 mProcessingDialog.dismiss();
-                                showChooseDialog(s);
                             }
                         });
                     }
@@ -293,25 +292,6 @@ public class VideoTranscodeActivity extends AppCompatActivity {
         } else {
             ToastUtils.s(this, "开始转码失败！");
         }
-    }
-
-    private void showChooseDialog(final String filePath) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(getString(R.string.if_edit_video));
-        builder.setPositiveButton(getString(R.string.dlg_yes), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                VideoEditActivity.start(VideoTranscodeActivity.this, filePath);
-            }
-        });
-        builder.setNegativeButton(getString(R.string.dlg_no), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                PlaybackActivity.start(VideoTranscodeActivity.this, filePath);
-            }
-        });
-        builder.setCancelable(false);
-        builder.create().show();
     }
 
     private PLWatermarkSetting createWatermarkSetting() {

@@ -1,5 +1,6 @@
 package com.qiniu.pili.droid.shortvideo.demo;
 
+import android.app.Application;
 import android.support.multidex.MultiDexApplication;
 
 import com.faceunity.nama.FURenderer;
@@ -18,7 +19,7 @@ public class ShortVideoApplication extends MultiDexApplication {
         FURenderer.setup(this);
     }
 
-    public static ShortVideoApplication getInstance() {
+    public static ShortVideoApplication getInstance(){
         return sInstance;
     }
 

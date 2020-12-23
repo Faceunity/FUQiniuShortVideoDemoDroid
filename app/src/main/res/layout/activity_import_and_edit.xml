@@ -34,14 +34,6 @@
         android:orientation="vertical">
 
         <com.qiniu.pili.droid.shortvideo.demo.view.ItemView
-            android:id="@+id/video_trim_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1px"
-            android:onClick="onClickImport"
-            app:text="@string/title_trim" />
-
-        <com.qiniu.pili.droid.shortvideo.demo.view.ItemView
             android:id="@+id/video_divide_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
