@@ -29,11 +29,31 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    applicationVariants.all { variant ->
+        variant.mergeAssetsProvider.configure {
+            doLast {
+                delete(fileTree(dir: outputDir,
+                        includes: ['model/ai_bgseg_green.bundle',
+                                   'model/ai_face_processor_lite.bundle',
+                                   'model/ai_hairseg.bundle',
+                                   'model/ai_hand_processor.bundle',
+                                   'model/ai_human_processor_mb_fast.bundle',
+                                   'graphics/controller_cpp.bundle',
+                                   'graphics/fuzzytoonfilter.bundle',
+                                   'graphics/tongue.bundle',
+                                   'graphics/fxaa.bundle']))
+            }
+        }
+    }
 }
 
 dependencies {
     implementation 'com.qiniu:qiniu-android-sdk:7.3.11'
-    implementation files('libs/pldroid-shortvideo-3.1.1.jar')
+    implementation files('libs/pldroid-shortvideo-3.2.2.jar')
     implementation files('libs/pldroid-player-2.1.8.jar')
     implementation files('libs/EasyAR.jar')
     implementation files('libs/EasyAR3D.jar')

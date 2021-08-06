@@ -2,89 +2,83 @@
 
 本工程是第三方 是集成了 FaceUnity 美颜贴纸功能和 **七牛短视频** 的 Demo。
 
-本文是 FaceUnity SDK 快速对接云信即时通讯的导读说明，SDK 版本为 **7.1.0**。关于 SDK 的详细说明，请参看 **[FULiveDemoDroid](https://github.com/Faceunity/FULiveDemoDroid/)**
+本文是 FaceUnity SDK 快速对接七牛短视频的导读说明，SDK 版本为 **7.4.1.0**。关于 SDK 的详细说明，请参看 **[FULiveDemoDroid](https://github.com/Faceunity/FULiveDemoDroid/tree/master/doc)**。
 
---------
+## 快速集成方法
 
-## 集成方法
+### 一、添加 SDK
 
-### 一、导入 SDK
+### 1. build.gradle配置
 
-- 将 faceunity 模块添加到工程中，下面是对库文件的说明。
-
-  - assets/sticker 文件夹下 \*.bundle 是特效贴纸文件。
-  - assets/makeup 文件夹下 \*.bundle 是美妆素材文件。
-  - com/faceunity/nama/authpack.java 是鉴权证书文件，必须提供有效的证书才能运行 Demo，请联系技术支持获取。
-
-  通过 Maven 依赖最新版 SDK：`implementation 'com.faceunity:nama:7.1.0'`，方便升级，推荐使用。
-
-  其中，AAR 包含以下内容：
-
-  ```
-      +libs                                  
-        -nama.jar                        // JNI 接口
-      +assets
-        +graphic                         // 图形效果道具
-          -body_slim.bundle              // 美体道具
-          -controller.bundle             // Avatar 道具
-          -face_beautification.bundle    // 美颜道具
-          -face_makeup.bundle            // 美妆道具
-          -fuzzytoonfilter.bundle        // 动漫滤镜道具
-          -fxaa.bundle                   // 3D 绘制抗锯齿
-          -tongue.bundle                 // 舌头跟踪数据包
-        +model                           // 算法能力模型
-          -ai_face_processor.bundle      // 人脸识别AI能力模型，需要默认加载
-          -ai_face_processor_lite.bundle // 人脸识别AI能力模型，轻量版
-          -ai_gesture.bundle             // 手势识别AI能力模型
-          -ai_human_processor.bundle     // 人体点位AI能力模型
-      +jni                               // CNama fuai 库
-        +armeabi-v7a
-          -libCNamaSDK.so
-          -libfuai.so
-        +arm64-v8a
-          -libCNamaSDK.so
-          -libfuai.so
-        +x86
-          -libCNamaSDK.so
-          -libfuai.so
-        +x86_64
-          -libCNamaSDK.so
-          -libfuai.so
-  ```
-
-  如需指定应用的 so 架构，请修改 app 模块 build.gradle：
-
-  ```groovy
-  android {
-      // ...
-      defaultConfig {
-          // ...
-          ndk {
-              abiFilters 'armeabi-v7a', 'arm64-v8a'
-          }
-      }
+#### 1.1 allprojects配置
+```java
+allprojects {
+    repositories {
+        ...
+        maven { url 'http://maven.faceunity.com/repository/maven-public/' }
+        ...
   }
-  ```
+}
+```
 
-  如需剔除不必要的 assets 文件，请修改 app 模块 build.gradle：
+#### 1.2 dependencies导入依赖
+```java
+dependencies {
+...
+implementation 'com.faceunity:core:7.4.1.0' // 实现代码
+implementation 'com.faceunity:model:7.4.1.0' // 道具以及AI bundle
+...
+}
+```
 
-  ```groovy
-  android {
-      // ...
-      applicationVariants.all { variant ->
-          variant.mergeAssetsProvider.configure {
-              doLast {
-                  delete(fileTree(dir: outputDir, includes: ['model/ai_face_processor_lite.bundle',
-                                                             'model/ai_gesture.bundle',
-                                                             'graphics/controller.bundle',
-                                                             'graphics/fuzzytoonfilter.bundle',
-                                                             'graphics/fxaa.bundle',
-                                                             'graphics/tongue.bundle']))
-              }
-          }
-      }
-  }
-  ```
+##### 备注
+
+集成参考文档：FULiveDemoDroid 工程 doc目录
+
+### 2. 其他接入方式-底层库依赖
+
+```java
+dependencies {
+...
+implementation 'com.faceunity:nama:7.4.0' //底层库-标准版
+implementation 'com.faceunity:nama-lite:7.4.0' //底层库-lite版
+...
+}
+```
+
+如需指定应用的 so 架构，请修改 app 模块 build.gradle：
+
+```groovy
+android {
+    // ...
+    defaultConfig {
+        // ...
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+    }
+}
+```
+
+如需剔除不必要的 assets 文件，请修改 app 模块 build.gradle：
+
+```groovy
+android {
+    // ...
+    applicationVariants.all { variant ->
+        variant.mergeAssetsProvider.configure {
+            doLast {
+                delete(fileTree(dir: outputDir, includes: ['model/ai_face_processor_lite.bundle',
+                                                           'model/ai_hand_processor.bundle',
+                                                           'graphics/controller.bundle',
+                                                           'graphics/fuzzytoonfilter.bundle',
+                                                           'graphics/fxaa.bundle',
+                                                           'graphics/tongue.bundle']))
+            }
+        }
+    }
+}
+```
 
 ### 
 
@@ -94,11 +88,11 @@
 
 在 `FURenderer` 类 的  `setup` 方法是对 FaceUnity SDK 全局数据初始化的封装，可以在工作线程调用，仅需初始化一次即可。
 
-在MainActivity 的 onCreate方法中执行。
+在 ShortVideoApplication 的 onCreate方法中执行。
 
 #### 2.创建
 
-在 `FURenderer` 类 的  `onSurfaceCreated` 方法是对 FaceUnity SDK 使用前数据初始化的封装。
+在 `FURenderer` 类 的  `prepareRenderer` 方法是对 FaceUnity SDK 使用前数据初始化的封装。
 
 在 VideoRecordActivity 类中注册 PLVideoFilterListener 监听， 在对应的生命周期内执行 
 
@@ -108,9 +102,11 @@
             @Override
             public void onSurfaceCreated() {
                 Log.d(TAG, "onSurfaceCreated: ");
+                initCsvUtil(VideoRecordActivity.this);
                 if (mFURenderer != null) {
-                    mFURenderer.onSurfaceCreated();
+                    mFURenderer.prepareRenderer(mFURendererListener);
                 }
+                mCameraData = null;
             }
 
             @Override
@@ -120,9 +116,11 @@
 
             @Override
             public void onSurfaceDestroy() {
-                if (mFURenderer != null) {
-                    mFURenderer.onSurfaceDestroyed();
+                Log.d(TAG, "onSurfaceDestroy: ");
+                if (mCSVUtils != null) {
+                    mCSVUtils.close();
                 }
+                mFURenderer.release();
             }
 
             /**
@@ -162,13 +160,13 @@ onDrawFrameDualInput 双输入，输入图像buffer数组与纹理Id，输出纹
 
 #### 4. 销毁
 
-在 `FURenderer` 类 的  `onSurfaceDestroyed` 方法是对 FaceUnity SDK 退出前数据销毁的封装。
+在 `FURenderer` 类 的  `release` 方法是对 FaceUnity SDK 退出前数据销毁的封装。
 
 在 VideoRecordActivity 类中注册 PLVideoFilterListener 监听，在 onSurfaceDestroy方法中执行。（代码如上）
 
 #### 5. 切换相机
 
-调用 `FURenderer` 类 的  `onCameraChanged` 方法，用于重新为 SDK 设置参数。
+调用 `FURenderer` 类 的  `setCameraFacing` 和 `setInputOrientation` 方法，用于重新为 SDK 设置参数。
 
 在 VideoRecordActivity  类  onClickSwitchCamera  方法中执行。
 
@@ -186,7 +184,7 @@ onDrawFrameDualInput 双输入，输入图像buffer数组与纹理Id，输出纹
                 if (!mSectionProgressBar.isRecorded() && !mSectionBegan) {
                     mVideoEncodeSetting.setRotationInMetadata(rotation);
                     if (null != mFURenderer && deviceRotation != rotation) {
-                        mFURenderer.onDeviceOrientationChanged((rotation + 180) % 360);
+                        mFURenderer.setDeviceOrientation((rotation + 180) % 360);
                         deviceRotation = rotation;
                     }
                 }
@@ -207,11 +205,11 @@ onDrawFrameDualInput 双输入，输入图像buffer数组与纹理Id，输出纹
 
 ### 三、接口介绍
 
-- IFURenderer 是核心接口，提供了创建、销毁、渲染等接口。使用时通过 FURenderer.Builder 创建合适的 FURenderer 实例即可。
-- IModuleManager 是模块管理接口，用于创建和销毁各个功能模块，FURenderer 是实现类。
-- IFaceBeautyModule 是美颜模块的接口，用于调整美颜参数。使用时通过 FURenderer 拿到 FaceBeautyModule 实例，调用里面的接口方法即可。
-- IStickerModule 是贴纸模块的接口，用于加载贴纸效果。使用时通过 FURenderer 拿到 StickerModule 实例，调用里面的接口方法即可。
-- IMakeModule 是美妆模块的接口，用于加载美妆效果。使用时通过 FURenderer 拿到 MakeupModule 实例，调用里面的接口方法即可。
-- IBodySlimModule 是美体模块的接口，用于调整美体参数。使用时通过 FURenderer 拿到 BodySlimModule 实例，调用里面的接口方法即可。
+- IFURenderer 是核心接口，提供了创建、销毁、渲染等接口。
+- FaceUnityDataFactory 控制四个功能模块，用于功能模块的切换，初始化
+- FaceBeautyDataFactory 是美颜业务工厂，用于调整美颜参数。
+- PropDataFactory 是道具业务工厂，用于加载贴纸效果。
+- MakeupDataFactory 是美妆业务工厂，用于加载美妆效果。
+- BodyBeautyDataFactory 是美体业务工厂，用于调整美体参数。
 
 **关于 FaceUnity SDK 的更多详细说明，请参看 [FULiveDemoDroid](https://github.com/Faceunity/FULiveDemoDroid/)**。

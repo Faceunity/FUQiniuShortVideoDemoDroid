@@ -16,7 +16,7 @@ public class ShortVideoApplication extends MultiDexApplication {
         sInstance = this;
         // init resources needed by short video sdk
         PLShortVideoEnv.init(getApplicationContext());
-        FURenderer.setup(this);
+        FURenderer.getInstance().setup(this);
     }
 
     public static ShortVideoApplication getInstance(){
