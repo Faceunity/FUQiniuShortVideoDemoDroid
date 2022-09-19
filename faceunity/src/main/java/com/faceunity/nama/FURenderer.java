@@ -86,8 +86,8 @@ public class FURenderer extends IFURenderer {
      */
     @Override
     public void setup(Context context) {
-        FURenderManager.setKitDebug(FULogger.LogLevel.TRACE);
-        FURenderManager.setCoreDebug(FULogger.LogLevel.DEBUG);
+        FURenderManager.setKitDebug(FULogger.LogLevel.DEBUG);
+        FURenderManager.setCoreDebug(FULogger.LogLevel.OFF);
         FURenderManager.registerFURender(context, authpack.A(), new OperateCallback() {
             @Override
             public void onSuccess(int i, @NotNull String s) {
