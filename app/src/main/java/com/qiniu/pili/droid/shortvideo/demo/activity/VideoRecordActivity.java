@@ -131,7 +131,6 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
     private CSVUtils mCSVUtils;
     private int mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private int deviceRotation = 90;
-    private byte[] mCameraData;
 
     private int mFocusIndicatorX;
     private int mFocusIndicatorY;
@@ -299,17 +298,7 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
         } else {
             beautyControlView.setVisibility(View.GONE);
         }
-        mShortVideoRecorder.setCameraPreviewListener(new PLCameraPreviewListener() {
-            @Override
-            public boolean onPreviewFrame(byte[] bytes, int i, int i1, int i2, int i3, long l) {
-                Log.e(TAG, "onPreviewFrame" + " width " + i + " height " + i1 + " fmt " + i3 + " rotation " + i2 + " PLFourCC " + PLFourCC.FOURCC_NV21);
-                if (mCameraData == null) {
-                    mCameraData = new byte[bytes.length];
-                }
-                System.arraycopy(bytes, 0, mCameraData, 0, bytes.length);
-                return true;
-            }
-        });
+
         mShortVideoRecorder.setVideoFilterListener(new PLVideoFilterListener() {
 
             @Override
@@ -319,7 +308,6 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
                 if (mFURenderer != null) {
                     mFURenderer.prepareRenderer(mFURendererListener);
                 }
-                mCameraData = null;
             }
 
             @Override
