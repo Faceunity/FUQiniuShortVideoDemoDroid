@@ -1,9 +1,8 @@
 package com.qiniu.pili.droid.shortvideo.demo;
 
-import android.app.Application;
 import android.support.multidex.MultiDexApplication;
 
-import com.faceunity.FUConfig;
+import com.faceunity.nama.FUConfig;
 import com.faceunity.nama.FURenderer;
 import com.faceunity.nama.utils.FuDeviceUtils;
 import com.qiniu.pili.droid.shortvideo.PLShortVideoEnv;
@@ -19,7 +18,7 @@ public class ShortVideoApplication extends MultiDexApplication {
         // init resources needed by short video sdk
         PLShortVideoEnv.init(getApplicationContext());
         FURenderer.getInstance().setup(this);
-        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevel(this);
+        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevelGPU();
     }
 
     public static ShortVideoApplication getInstance(){
