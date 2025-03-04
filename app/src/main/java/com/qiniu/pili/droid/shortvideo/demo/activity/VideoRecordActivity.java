@@ -577,6 +577,7 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
         mShortVideoRecorder.switchCamera();
         mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT - mCameraId;
         mFocusIndicator.focusCancel();
+        refreshSeekBar();
     }
 
     public void onClickSwitchFlash(View v) {
