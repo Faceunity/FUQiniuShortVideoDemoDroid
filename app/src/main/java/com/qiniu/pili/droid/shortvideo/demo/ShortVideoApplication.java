@@ -18,7 +18,7 @@ public class ShortVideoApplication extends MultiDexApplication {
         // init resources needed by short video sdk
         PLShortVideoEnv.init(getApplicationContext());
         FURenderer.getInstance().setup(this);
-        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevelGPU();
+        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevel(true);
     }
 
     public static ShortVideoApplication getInstance(){

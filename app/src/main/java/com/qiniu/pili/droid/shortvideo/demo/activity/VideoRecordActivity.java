@@ -366,7 +366,7 @@ public class VideoRecordActivity extends AppCompatActivity implements PLRecordSt
                     return texId;
                 }
 
-                if (FUConfig.DEVICE_LEVEL > FuDeviceUtils.DEVICE_LEVEL_MID) {
+                if (FUConfig.DEVICE_LEVEL > FuDeviceUtils.DEVICE_LEVEL_TWO) {
                     cheekFaceNum();
                 }
 
